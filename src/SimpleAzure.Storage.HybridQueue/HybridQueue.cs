@@ -27,8 +27,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
         if (item is string stringItem)
         {
             _logger.LogDebug("Item is a SimpleType: string.");
-
-            message = stringItem; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
+            message = stringItem;
         }
         else if (typeof(T).IsASimpleType())
         {
@@ -41,9 +40,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
         else
         {
             // It's a complex type, so serialize this as Json.
-
             _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
-
             message = JsonSerializer.Serialize(item);
         }
 
@@ -120,7 +117,6 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
             var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
             var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-
             if (!blobResponse.Value)
             {
                 _logger.LogWarning("Failed to delete message from Blob Container.");
@@ -162,11 +158,9 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
         _logger.LogDebug("About to receive queue message.");
 
         var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
-
         if (response?.Value is not { } messages)
         {
             _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
-
             return [];
         }
 
@@ -174,9 +168,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
         var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
-        var hybridMessages = await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
-
-        return hybridMessages;
+        return await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
     }
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
@@ -202,9 +194,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
                 throw new InvalidOperationException($"Could not deserialize blob '{blobId}' for message '{queueMessage.MessageId}'.");
             }
 
-            var hybridMessage = new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
-
-            return hybridMessage;
+            return new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
         }
         else if (typeof(T).IsASimpleType())
         {
@@ -212,26 +202,20 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
             // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
-            var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
-
-            return hybridMessage;
+            return new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
         }
         else
         {
             // Complex type, so lets assume it was serialized as Json ... so now we deserialize it.
-
             _logger.LogDebug("Retrieving a complex item: assumed as json so deserializing it.");
 
             var item = JsonSerializer.Deserialize<T>(message);
-
             if (item is null)
             {
                 throw new InvalidOperationException($"Could not deserialize complex type for message '{queueMessage.MessageId}'.");
             }
 
-            var hybridMessage = new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
-
-            return hybridMessage;
+            return new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
         }
     }
 }
