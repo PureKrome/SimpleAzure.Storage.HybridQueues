@@ -8,13 +8,14 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeSimpleStrings_ShouldAddThemAllToTheQueue()
     {
         // Arrange.
+        var cancellationToken = new CancellationToken();
         var messages = new[] { "aaa", "bbb", "ccc", "ddd" };
 
         // Act.
-        await HybridQueue.AddMessagesAsync(messages, default);
+        await HybridQueue.AddMessagesAsync(messages, cancellationToken);
 
         // Assert.
-        var retrievedMessage = await HybridQueue.GetMessagesAsync<string>();
+        var retrievedMessage = await HybridQueue.GetMessagesAsync<string>(cancellationToken);
         retrievedMessage.ShouldNotBeNull();
 
         retrievedMessage
@@ -28,6 +29,7 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeComplexInstances_ShouldAddThemAllToTheQueue()
     {
         // Arrange.
+        var cancellationToken = new CancellationToken();
         var messages = new[]
         {
             new FakeMessage(20),
@@ -38,10 +40,10 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
         };
 
         // Act.
-        await HybridQueue.AddMessagesAsync(messages, default);
+        await HybridQueue.AddMessagesAsync(messages, cancellationToken);
 
         // Assert.
-        var retrievedMessage = await HybridQueue.GetMessagesAsync<FakeMessage>();
+        var retrievedMessage = await HybridQueue.GetMessagesAsync<FakeMessage>(cancellationToken);
         retrievedMessage.ShouldNotBeNull();
 
         retrievedMessage
@@ -55,6 +57,7 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeLargeComplexInstances_ShouldAddThemAllToTheblobAndQueue()
     {
         // Arrange.
+        var cancellationToken = new CancellationToken();
         var messages = new[]
         {
             new FakeMessage(QueueClient.MessageMaxBytes + 1),
@@ -65,10 +68,10 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
         };
 
         // Act.
-        await HybridQueue.AddMessagesAsync(messages, default);
+        await HybridQueue.AddMessagesAsync(messages, cancellationToken);
 
         // Assert.
-        var retrievedMessage = await HybridQueue.GetMessagesAsync<FakeMessage>();
+        var retrievedMessage = await HybridQueue.GetMessagesAsync<FakeMessage>(cancellationToken);
         retrievedMessage.ShouldNotBeNull();
 
         retrievedMessage

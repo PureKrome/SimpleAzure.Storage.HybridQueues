@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
 public class HybridQueue : IHybridQueue
-
 {
     private readonly QueueClient _queueClient;
     private readonly BlobContainerClient _blobContainerClient;
@@ -23,7 +22,7 @@ public class HybridQueue : IHybridQueue
     }
 
     /// <inheritdoc />
-    public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay = null, CancellationToken cancellationToken = default)
+    public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -36,17 +35,17 @@ public class HybridQueue : IHybridQueue
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
         if (typeof(T).IsASimpleType())
         {
-            if (item is string)
+            if (item is string someString)
             {
                 _logger.LogDebug("Item is a SimpleType: string.");
 
-                message = item as string; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
+                message = someString; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
             }
             else
             {
                 _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
-                message = item.ToString();
+                message = item.ToString()!;
             }
         }
         else
@@ -90,9 +89,9 @@ public class HybridQueue : IHybridQueue
     /// <inheritdoc />
     public async Task AddMessagesAsync<T>(
         IEnumerable<T> contents,
-        TimeSpan? initialVisibilityDelay = null,
-        int batchSize = 25,
-        CancellationToken cancellationToken = default)
+        TimeSpan? initialVisibilityDelay,
+        int batchSize,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contents);
 
@@ -121,7 +120,7 @@ public class HybridQueue : IHybridQueue
     }
 
     /// <inheritdoc />
-    public async Task DeleteMessageAsync<T>(HybridMessage<T> hybridMessage, CancellationToken cancellationToken = default)
+    public async Task DeleteMessageAsync<T>(HybridMessage<T> hybridMessage, CancellationToken cancellationToken)
     {
         using var _ = _logger.BeginCustomScope(
             (nameof(hybridMessage.MessageId), hybridMessage.MessageId),
@@ -151,7 +150,7 @@ public class HybridQueue : IHybridQueue
     }
 
     /// <inheritdoc />
-    public async Task<HybridMessage<T?>> GetMessageAsync<T>(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
+    public async Task<HybridMessage<T?>> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
     {
         var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
 
@@ -170,9 +169,9 @@ public class HybridQueue : IHybridQueue
 
     /// <inheritdoc />
     public async Task<IEnumerable<HybridMessage<T>>> GetMessagesAsync<T>(
-        int maxMessages = 32,
-        TimeSpan? visibilityTimeout = null,
-        CancellationToken cancellationToken = default)
+        int maxMessages,
+        TimeSpan? visibilityTimeout,
+        CancellationToken cancellationToken)
     {
         // Note: Why 32? That's the limit for Azure to pop at once.
         if (maxMessages < 1 ||

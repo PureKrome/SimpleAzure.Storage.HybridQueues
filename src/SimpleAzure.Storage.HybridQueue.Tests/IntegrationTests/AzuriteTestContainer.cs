@@ -8,7 +8,7 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
     private readonly AzuriteContainer _azuriteContainer;
     private QueueClient? _queueClient;
     private BlobContainerClient? _blobContainerClient;
-    private HybridQueue? _hybridQueue;
+    private IHybridQueue? _hybridQueue;
 
     public CustomAzuriteTestContainer()
     {
@@ -21,7 +21,7 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
 
     protected BlobContainerClient BlobContainerClient { get { return _blobContainerClient!; } }
 
-    protected HybridQueue HybridQueue { get { return _hybridQueue!; } }
+    protected IHybridQueue HybridQueue { get { return _hybridQueue!; } }
 
     public async Task DisposeAsync()
     {

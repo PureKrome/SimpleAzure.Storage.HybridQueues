@@ -9,8 +9,14 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
         [InlineData(33)]
         public async Task GetMessagesAsync_GivenAnInvalidMaxMessages_ShouldThrowAnException(int maxMessages)
         {
-            // Arrange & Act.
-            var exception = await Should.ThrowAsync<ArgumentOutOfRangeException>(HybridQueue.GetMessagesAsync<string>(maxMessages));
+            // Arrange.
+            var cancellationToken = new CancellationToken();
+
+            // Act.
+            var exception = await Should.ThrowAsync<ArgumentOutOfRangeException>(HybridQueue.GetMessagesAsync<string>(
+                maxMessages,
+                null,
+                cancellationToken));
 
             // Assert.
             exception.ShouldNotBeNull();
