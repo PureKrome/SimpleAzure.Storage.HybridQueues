@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs;
@@ -146,21 +147,16 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
     {
         var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
 
-        if (messages?.Any() ?? false)
+        return messages switch
         {
-            if (messages.Count() > 1)
-            {
-                throw new InvalidOperationException($"Expected 1 message but received {messages.Count()} messages");
-            }
-
-            return messages.First();
-        }
-
-        return null;
+            [] => null,
+            [{ } first] => first,
+            _ => throw new InvalidOperationException($"Expected 1 message but received {messages.Length} messages")
+        };
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<HybridMessage<T>>> GetMessagesAsync<T>(
+    public async Task<HybridMessage<T>[]> GetMessagesAsync<T>(
         int maxMessages,
         TimeSpan? visibilityTimeout,
         CancellationToken cancellationToken)
@@ -183,7 +179,7 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         {
             _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
 
-            return Enumerable.Empty<HybridMessage<T>>();
+            return [];
         }
 
         _logger.LogDebug("Received {} messages from queue.", messages.Length);

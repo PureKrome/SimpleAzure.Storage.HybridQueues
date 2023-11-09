@@ -99,7 +99,7 @@ public interface IHybridQueue
     /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
     /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
     /// <remarks>The content of the message will attempt to be deserialized from Json. If the message is a Primitive type or a string, then the Json deserialization will be still run but no error should occur.</remarks>
-    Task<IEnumerable<HybridMessage<T>>> GetMessagesAsync<T>(
+    Task<HybridMessage<T>[]> GetMessagesAsync<T>(
         int maxMessages,
         TimeSpan? visibilityTimeout,
         CancellationToken cancellationToken);
