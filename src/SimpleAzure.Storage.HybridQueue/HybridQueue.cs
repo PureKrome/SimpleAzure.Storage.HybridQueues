@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
+public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
 {
     private readonly QueueClient _queueClient = queueClient;
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;

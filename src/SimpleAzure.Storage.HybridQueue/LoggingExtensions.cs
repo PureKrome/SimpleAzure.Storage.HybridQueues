@@ -2,9 +2,9 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-public static class LoggerExtensions
+internal static class LoggerExtensions
 {
-    public static IDisposable? BeginCustomScope(this ILogger logger, params (string Name, object? Value)[] scopeItems)
+    internal static IDisposable? BeginCustomScope(this ILogger logger, params (string Name, object? Value)[] scopeItems)
     {
         ArgumentNullException.ThrowIfNull(scopeItems);
 
