@@ -33,20 +33,17 @@ public class HybridQueue : IHybridQueue
         string message;
 
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
-        if (typeof(T).IsASimpleType())
+        if (item is string stringItem)
         {
-            if (item is string someString)
-            {
-                _logger.LogDebug("Item is a SimpleType: string.");
+            _logger.LogDebug("Item is a SimpleType: string.");
 
-                message = someString; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
-            }
-            else
-            {
-                _logger.LogDebug("Item is a SimpleType: something other than a string.");
+            message = stringItem; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
+        }
+        else if (typeof(T).IsASimpleType())
+        {
+            _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
-                message = item.ToString()!;
-            }
+            message = item.ToString();
         }
         else
         {
