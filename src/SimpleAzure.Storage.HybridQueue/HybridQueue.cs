@@ -60,7 +60,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
             var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
             var binaryData = new BinaryData(message);
-            await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken);
+            await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken).ConfigureAwait(false);
 
             message = blobId;
 
@@ -71,7 +71,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
             message,
             initialVisibilityDelay,
             null,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Finished adding an Item to the queue.");
     }
@@ -99,7 +99,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
             var tasks = batch.Select(content => AddMessageAsync(content, initialVisibilityDelay, cancellationToken));
 
             // Execute this batch.
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
     }
 
@@ -119,7 +119,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
             _logger.LogDebug("Deleting message from Blob Container.");
 
             var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
-            var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+            var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (!blobResponse.Value)
             {
@@ -127,14 +127,14 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
             }
         }
 
-        var queueResponse = await _queueClient.DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken);
+        var queueResponse = await _queueClient.DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Deleted a message from the queue.");
     }
 
     public async Task<HybridMessage<T>?> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
     {
-        var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
+        var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 
         return messages switch
         {
@@ -161,7 +161,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
         _logger.LogDebug("About to receive queue message.");
 
-        var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken);
+        var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 
         if (response?.Value is not { } messages)
         {
@@ -174,7 +174,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
         var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
-        var hybridMessages = await Task.WhenAll(hybridMessageTasks);
+        var hybridMessages = await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
 
         return hybridMessages;
     }
@@ -191,10 +191,10 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
             // Lets grab the item from the Blob.
             var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
-            using var stream = await blobClient.OpenReadAsync(null, cancellationToken);
+            using var stream = await blobClient.OpenReadAsync(null, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("About to deserialize stream for a blob item from Blob Storage.");
-            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken)!;
+            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Finished deserializing stream for a blob item from Blob Storage.");
 
             if (blobItem is null)
