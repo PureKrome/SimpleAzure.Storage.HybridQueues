@@ -8,14 +8,12 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-/// <inheritdoc />
 public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
 {
     private readonly QueueClient _queueClient = queueClient;
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
     private readonly ILogger<HybridQueue> _logger = logger;
 
-    /// <inheritdoc />
     public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -79,7 +77,6 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         _logger.LogDebug("Finished adding an Item to the queue.");
     }
 
-    /// <inheritdoc />
     public async Task AddMessagesAsync<T>(
         IEnumerable<T> contents,
         TimeSpan? initialVisibilityDelay,
@@ -107,7 +104,6 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         }
     }
 
-    /// <inheritdoc />
     public async Task DeleteMessageAsync<T>(HybridMessage<T> hybridMessage, CancellationToken cancellationToken)
     {
         using var _ = _logger.BeginCustomScope(
@@ -137,7 +133,6 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         _logger.LogDebug("Deleted a message from the queue.");
     }
 
-    /// <inheritdoc />
     public async Task<HybridMessage<T>?> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
     {
         var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
@@ -150,7 +145,6 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         };
     }
 
-    /// <inheritdoc />
     public async Task<HybridMessage<T>[]> GetMessagesAsync<T>(
         int maxMessages,
         TimeSpan? visibilityTimeout,
