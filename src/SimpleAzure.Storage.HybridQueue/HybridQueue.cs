@@ -123,11 +123,11 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         _logger.LogDebug("Deleting a message.");
 
         // We start with any blobs.
-        if (hybridMessage.BlobId.HasValue)
+        if (hybridMessage.BlobId is { } blobId)
         {
             _logger.LogDebug("Deleting message from Blob Container.");
 
-            var blobClient = _blobContainerClient.GetBlobClient(hybridMessage.BlobId.Value.ToString());
+            var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
             var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
 
             if (!blobResponse.Value)
@@ -166,8 +166,7 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         CancellationToken cancellationToken)
     {
         // Note: Why 32? That's the limit for Azure to pop at once.
-        if (maxMessages < 1 ||
-            maxMessages > 32)
+        if (maxMessages is < 1 or > 32)
         {
             throw new ArgumentOutOfRangeException(nameof(maxMessages));
         }
@@ -180,17 +179,16 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
 
         var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken);
 
-        if (response == null ||
-            response.Value == null)
+        if (response?.Value is not { } messages)
         {
             _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
 
             return Enumerable.Empty<HybridMessage<T>>();
         }
 
-        _logger.LogDebug("Received {} messages from queue.", response.Value.Length);
+        _logger.LogDebug("Received {} messages from queue.", messages.Length);
 
-        var hybridMessageTasks = response.Value.Select(x => ParseMessageAsync<T>(x, cancellationToken));
+        var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
         var hybridMessages = await Task.WhenAll(hybridMessageTasks);
 
