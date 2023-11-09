@@ -43,7 +43,9 @@ public class HybridQueue : IHybridQueue
         {
             _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
-            message = item.ToString();
+            // IsASimpleType ensures that item is a primitive type, or decimal, and none of them
+            // return null from their ToString method.
+            message = item.ToString().AssumeNotNull();
         }
         else
         {

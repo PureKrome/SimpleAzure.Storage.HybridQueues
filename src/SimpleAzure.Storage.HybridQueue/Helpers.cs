@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
 internal static class Helpers
@@ -13,4 +16,16 @@ internal static class Helpers
         type.IsPrimitive ||
         type == typeof(string) ||
         type == typeof(decimal);
+
+    /// <summary>
+    /// Has the same intention as the null suppression operator (!) but throws an exception at the use site,
+    /// rather than the use site which occurs some unknown time later.
+    /// </summary>
+    internal static T AssumeNotNull<T>(
+        [NotNull] this T? item,
+        [CallerArgumentExpression(nameof(item))] string? expr = null)
+        where T : class
+    {
+        return item ?? throw new InvalidOperationException($"Expected '{expr}' to be non-null.");
+    }
 }

@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WorldDomination.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>WorldDomination.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
 
