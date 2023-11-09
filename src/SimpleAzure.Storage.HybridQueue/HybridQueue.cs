@@ -149,7 +149,7 @@ public class HybridQueue : IHybridQueue
     }
 
     /// <inheritdoc />
-    public async Task<HybridMessage<T?>> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
+    public async Task<HybridMessage<T>?> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
     {
         var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
 
@@ -163,7 +163,7 @@ public class HybridQueue : IHybridQueue
             return messages.First();
         }
 
-        return default;
+        return null;
     }
 
     /// <inheritdoc />
@@ -206,12 +206,7 @@ public class HybridQueue : IHybridQueue
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
     {
-        var message = queueMessage.Body?.ToString();
-
-        if (message == null)
-        {
-            return new HybridMessage<T>(default, queueMessage.MessageId, queueMessage.PopReceipt, null);
-        }
+        var message = queueMessage.Body.ToString().AssumeNotNull();
 
         if (Guid.TryParse(message, out var blobId))
         {
@@ -226,6 +221,11 @@ public class HybridQueue : IHybridQueue
             _logger.LogDebug("About to deserialize stream for a blob item from Blob Storage.");
             var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken)!;
             _logger.LogDebug("Finished deserializing stream for a blob item from Blob Storage.");
+
+            if (blobItem is null)
+            {
+                throw new InvalidOperationException($"Could not deserialize blob '{blobId}' for message '{queueMessage.MessageId}'.");
+            }
 
             var hybridMessage = new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
 
@@ -247,7 +247,12 @@ public class HybridQueue : IHybridQueue
 
             _logger.LogDebug("Retrieving a complex item: assumed as json so deserializing it.");
 
-            var item = JsonSerializer.Deserialize<T>(message)!;
+            var item = JsonSerializer.Deserialize<T>(message);
+
+            if (item is null)
+            {
+                throw new InvalidOperationException($"Could not deserialize complex type for message '{queueMessage.MessageId}'.");
+            }
 
             var hybridMessage = new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
 
