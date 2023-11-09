@@ -98,12 +98,7 @@ public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContai
         }
 
         // Lets batch up these messages to make sure the awaiting of all the tasks doesn't go too crazy.
-        var contentsSize = contents.Count();
-        var finalBatchSize = contentsSize > batchSize
-                                 ? batchSize
-                                 : contentsSize;
-
-        foreach (var batch in contents.Chunk(finalBatchSize))
+        foreach (var batch in contents.Chunk(batchSize))
         {
             var tasks = batch.Select(content => AddMessageAsync(content, initialVisibilityDelay, cancellationToken));
 
