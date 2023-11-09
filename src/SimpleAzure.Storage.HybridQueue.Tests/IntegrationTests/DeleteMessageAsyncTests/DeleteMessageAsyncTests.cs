@@ -8,7 +8,7 @@ public class DeleteMessageAsyncTests : CustomAzuriteTestContainer
     public async Task DeleteMessageAsync_GivenALargeComplexInstance_ShouldDeleteTheBlobItemAndQueueMessage()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var message = new FakeMessage(QueueClient.MessageMaxBytes + 1);
 
         await HybridQueue.AddMessageAsync(message, default);

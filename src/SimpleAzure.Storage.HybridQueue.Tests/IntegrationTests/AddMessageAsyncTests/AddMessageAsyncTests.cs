@@ -8,7 +8,7 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessageAsync_GivenSomeSimpleString_ShouldAddTheMessageToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var message = "hello";
 
         // Act.
@@ -24,7 +24,7 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessageAsync_GivenASimpleInt_ShouldAddTheMessageToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var message = 1234;
 
         // Act.
@@ -40,7 +40,7 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessageAsync_GivenAComplexInstance_ShouldAddTheMessageToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var message = new FakeMessage(10);
 
         // Act.
@@ -57,7 +57,7 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessageAsync_GivenALargeComplexInstance_ShouldAddTheMessageToABlogAndThenAGuidToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var message = new FakeMessage(QueueClient.MessageMaxBytes + 1);
 
         // Act.

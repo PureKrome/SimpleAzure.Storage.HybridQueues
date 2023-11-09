@@ -8,7 +8,7 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeSimpleStrings_ShouldAddThemAllToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var messages = new[] { "aaa", "bbb", "ccc", "ddd" };
 
         // Act.
@@ -29,7 +29,7 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeComplexInstances_ShouldAddThemAllToTheQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var messages = new[]
         {
             new FakeMessage(20),
@@ -57,7 +57,7 @@ public class AddMessagesAsyncTests : CustomAzuriteTestContainer
     public async Task AddMessagesAsync_GivenSomeLargeComplexInstances_ShouldAddThemAllToTheblobAndQueue()
     {
         // Arrange.
-        var cancellationToken = new CancellationToken();
+        var cancellationToken = CancellationToken.None;
         var messages = new[]
         {
             new FakeMessage(QueueClient.MessageMaxBytes + 1),
