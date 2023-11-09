@@ -7,19 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-public class HybridQueue : IHybridQueue
+/// <inheritdoc />
+public class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
 {
-    private readonly QueueClient _queueClient;
-    private readonly BlobContainerClient _blobContainerClient;
-    private readonly ILogger<HybridQueue> _logger;
-
-    /// <inheritdoc />
-    public HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger)
-    {
-        _queueClient = queueClient;
-        _blobContainerClient = blobContainerClient;
-        _logger = logger;
-    }
+    private readonly QueueClient _queueClient = queueClient;
+    private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
+    private readonly ILogger<HybridQueue> _logger = logger;
 
     /// <inheritdoc />
     public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay, CancellationToken cancellationToken)
