@@ -161,7 +161,7 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
         if (response?.Value is not { } messages)
         {
             _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
-            return [];
+            return Array.Empty<HybridMessage<T>>();
         }
 
         _logger.LogDebug("Received {} messages from queue.", messages.Length);
