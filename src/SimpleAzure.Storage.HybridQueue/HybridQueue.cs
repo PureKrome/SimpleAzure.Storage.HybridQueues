@@ -218,7 +218,7 @@ public class HybridQueue : IHybridQueue
         {
             using var _ = _logger.BeginCustomScope((nameof(blobId), blobId));
 
-            _logger.LogDebug("Retreiving item via Blob Storage.");
+            _logger.LogDebug("Retrieving item via Blob Storage.");
 
             // Lets grab the item from the Blob.
             var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
@@ -234,9 +234,9 @@ public class HybridQueue : IHybridQueue
         }
         else if (typeof(T).IsASimpleType())
         {
-            _logger.LogDebug("Retreiving item: which is a simle type and not a guid/not in Blob Storage.");
+            _logger.LogDebug("Retrieving item: which is a simle type and not a guid/not in Blob Storage.");
 
-            // Do we have a GUID? Guid's are used to represent the blobId.
+            // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
             var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
 
@@ -246,7 +246,7 @@ public class HybridQueue : IHybridQueue
         {
             // Complex type, so lets assume it was serialized as Json ... so now we deserialize it.
 
-            _logger.LogDebug("Retreiving a complex item: assumed as json so deserializing it.");
+            _logger.LogDebug("Retrieving a complex item: assumed as json so deserializing it.");
 
             var item = JsonSerializer.Deserialize<T>(message)!;
 
