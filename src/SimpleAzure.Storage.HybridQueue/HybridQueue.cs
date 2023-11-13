@@ -7,7 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
+public sealed class HybridQueue(
+    QueueClient queueClient,
+    BlobContainerClient blobContainerClient,
+    ILogger<HybridQueue> logger) : IHybridQueue
 {
     private readonly QueueClient _queueClient = queueClient;
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
@@ -132,12 +135,13 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
     {
         var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 
-        return messages switch
+        var result = messages switch
         {
             [] => null,
             [{ } first] => first,
             _ => throw new InvalidOperationException($"Expected 1 message but received {messages.Count} messages")
         };
+        return result;
     }
 
     public async Task<IReadOnlyList<HybridMessage<T>>> GetMessagesAsync<T>(
@@ -195,7 +199,8 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
                 throw new InvalidOperationException($"Could not deserialize blob '{blobId}' for message '{queueMessage.MessageId}'.");
             }
 
-            return new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
+            var hybridMessage = new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
+            return hybridMessage;
         }
         else if (typeof(T).IsASimpleType())
         {
@@ -203,7 +208,9 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
             // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
-            return new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
+
+            var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
+            return hybridMessage;
         }
         else
         {
