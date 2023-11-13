@@ -168,7 +168,8 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
 
         var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
-        return await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
+        var hybridMessages = await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
+        return hybridMessages;
     }
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
