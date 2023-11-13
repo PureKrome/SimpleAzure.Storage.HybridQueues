@@ -7,21 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
-public class HybridQueue : IHybridQueue
+public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger) : IHybridQueue
 {
-    private readonly QueueClient _queueClient;
-    private readonly BlobContainerClient _blobContainerClient;
-    private readonly ILogger<HybridQueue> _logger;
+    private readonly QueueClient _queueClient = queueClient;
+    private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
+    private readonly ILogger<HybridQueue> _logger = logger;
 
-    /// <inheritdoc />
-    public HybridQueue(QueueClient queueClient, BlobContainerClient blobContainerClient, ILogger<HybridQueue> logger)
-    {
-        _queueClient = queueClient;
-        _blobContainerClient = blobContainerClient;
-        _logger = logger;
-    }
-
-    /// <inheritdoc />
     public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -33,27 +24,23 @@ public class HybridQueue : IHybridQueue
         string message;
 
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
-        if (typeof(T).IsASimpleType())
+        if (item is string stringItem)
         {
-            if (item is string someString)
-            {
-                _logger.LogDebug("Item is a SimpleType: string.");
+            _logger.LogDebug("Item is a SimpleType: string.");
+            message = stringItem;
+        }
+        else if (typeof(T).IsASimpleType())
+        {
+            _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
-                message = someString; // Note: shouldn't allocate new memory. Should just be a reference to existing memory.
-            }
-            else
-            {
-                _logger.LogDebug("Item is a SimpleType: something other than a string.");
-
-                message = item.ToString()!;
-            }
+            // IsASimpleType ensures that item is a primitive type, or decimal, and none of them
+            // return null from their ToString method.
+            message = item.ToString().AssumeNotNull();
         }
         else
         {
             // It's a complex type, so serialize this as Json.
-
             _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
-
             message = JsonSerializer.Serialize(item);
         }
 
@@ -70,7 +57,7 @@ public class HybridQueue : IHybridQueue
 
             var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
             var binaryData = new BinaryData(message);
-            await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken);
+            await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken).ConfigureAwait(false);
 
             message = blobId;
 
@@ -81,12 +68,11 @@ public class HybridQueue : IHybridQueue
             message,
             initialVisibilityDelay,
             null,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Finished adding an Item to the queue.");
     }
 
-    /// <inheritdoc />
     public async Task AddMessagesAsync<T>(
         IEnumerable<T> contents,
         TimeSpan? initialVisibilityDelay,
@@ -105,21 +91,15 @@ public class HybridQueue : IHybridQueue
         }
 
         // Lets batch up these messages to make sure the awaiting of all the tasks doesn't go too crazy.
-        var contentsSize = contents.Count();
-        var finalBatchSize = contentsSize > batchSize
-                                 ? batchSize
-                                 : contentsSize;
-
-        foreach (var batch in contents.Chunk(finalBatchSize))
+        foreach (var batch in contents.Chunk(batchSize))
         {
             var tasks = batch.Select(content => AddMessageAsync(content, initialVisibilityDelay, cancellationToken));
 
             // Execute this batch.
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
     }
 
-    /// <inheritdoc />
     public async Task DeleteMessageAsync<T>(HybridMessage<T> hybridMessage, CancellationToken cancellationToken)
     {
         using var _ = _logger.BeginCustomScope(
@@ -131,51 +111,42 @@ public class HybridQueue : IHybridQueue
         _logger.LogDebug("Deleting a message.");
 
         // We start with any blobs.
-        if (hybridMessage.BlobId.HasValue)
+        if (hybridMessage.BlobId is { } blobId)
         {
             _logger.LogDebug("Deleting message from Blob Container.");
 
-            var blobClient = _blobContainerClient.GetBlobClient(hybridMessage.BlobId.Value.ToString());
-            var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
-
+            var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
+            var blobResponse = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             if (!blobResponse.Value)
             {
                 _logger.LogWarning("Failed to delete message from Blob Container.");
             }
         }
 
-        var queueResponse = await _queueClient.DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken);
+        var queueResponse = await _queueClient.DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Deleted a message from the queue.");
     }
 
-    /// <inheritdoc />
-    public async Task<HybridMessage<T?>> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
+    public async Task<HybridMessage<T>?> GetMessageAsync<T>(TimeSpan? visibilityTimeout, CancellationToken cancellationToken)
     {
-        var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken);
+        var messages = await GetMessagesAsync<T>(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 
-        if (messages?.Any() ?? false)
+        return messages switch
         {
-            if (messages.Count() > 1)
-            {
-                throw new InvalidOperationException($"Expected 1 message but received {messages.Count()} messages");
-            }
-
-            return messages.First();
-        }
-
-        return default;
+            [] => null,
+            [{ } first] => first,
+            _ => throw new InvalidOperationException($"Expected 1 message but received {messages.Count} messages")
+        };
     }
 
-    /// <inheritdoc />
-    public async Task<IEnumerable<HybridMessage<T>>> GetMessagesAsync<T>(
+    public async Task<IReadOnlyList<HybridMessage<T>>> GetMessagesAsync<T>(
         int maxMessages,
         TimeSpan? visibilityTimeout,
         CancellationToken cancellationToken)
     {
         // Note: Why 32? That's the limit for Azure to pop at once.
-        if (maxMessages < 1 ||
-            maxMessages > 32)
+        if (maxMessages is < 1 or > 32)
         {
             throw new ArgumentOutOfRangeException(nameof(maxMessages));
         }
@@ -186,73 +157,66 @@ public class HybridQueue : IHybridQueue
 
         _logger.LogDebug("About to receive queue message.");
 
-        var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken);
-
-        if (response == null ||
-            response.Value == null)
+        var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
+        if (response?.Value is not { } messages)
         {
             _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
-
-            return Enumerable.Empty<HybridMessage<T>>();
+            return Array.Empty<HybridMessage<T>>();
         }
 
-        _logger.LogDebug("Received {} messages from queue.", response.Value.Length);
+        _logger.LogDebug("Received {} messages from queue.", messages.Length);
 
-        var hybridMessageTasks = response.Value.Select(x => ParseMessageAsync<T>(x, cancellationToken));
+        var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
-        var hybridMessages = await Task.WhenAll(hybridMessageTasks);
-
+        var hybridMessages = await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
         return hybridMessages;
     }
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
     {
-        var message = queueMessage.Body?.ToString();
-
-        if (message == null)
-        {
-            return new HybridMessage<T>(default, queueMessage.MessageId, queueMessage.PopReceipt, null);
-        }
+        var message = queueMessage.Body.ToString().AssumeNotNull();
 
         if (Guid.TryParse(message, out var blobId))
         {
             using var _ = _logger.BeginCustomScope((nameof(blobId), blobId));
 
-            _logger.LogDebug("Retreiving item via Blob Storage.");
+            _logger.LogDebug("Retrieving item via Blob Storage.");
 
             // Lets grab the item from the Blob.
             var blobClient = _blobContainerClient.GetBlobClient(blobId.ToString());
-            using var stream = await blobClient.OpenReadAsync(null, cancellationToken);
+            using var stream = await blobClient.OpenReadAsync(null, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("About to deserialize stream for a blob item from Blob Storage.");
-            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken)!;
+            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Finished deserializing stream for a blob item from Blob Storage.");
 
-            var hybridMessage = new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
+            if (blobItem is null)
+            {
+                throw new InvalidOperationException($"Could not deserialize blob '{blobId}' for message '{queueMessage.MessageId}'.");
+            }
 
-            return hybridMessage;
+            return new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
         }
         else if (typeof(T).IsASimpleType())
         {
-            _logger.LogDebug("Retreiving item: which is a simle type and not a guid/not in Blob Storage.");
+            _logger.LogDebug("Retrieving item: which is a simle type and not a guid/not in Blob Storage.");
 
-            // Do we have a GUID? Guid's are used to represent the blobId.
+            // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
-            var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
-
-            return hybridMessage;
+            return new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
         }
         else
         {
             // Complex type, so lets assume it was serialized as Json ... so now we deserialize it.
+            _logger.LogDebug("Retrieving a complex item: assumed as json so deserializing it.");
 
-            _logger.LogDebug("Retreiving a complex item: assumed as json so deserializing it.");
+            var item = JsonSerializer.Deserialize<T>(message);
+            if (item is null)
+            {
+                throw new InvalidOperationException($"Could not deserialize complex type for message '{queueMessage.MessageId}'.");
+            }
 
-            var item = JsonSerializer.Deserialize<T>(message)!;
-
-            var hybridMessage = new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
-
-            return hybridMessage;
+            return new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
         }
     }
 }

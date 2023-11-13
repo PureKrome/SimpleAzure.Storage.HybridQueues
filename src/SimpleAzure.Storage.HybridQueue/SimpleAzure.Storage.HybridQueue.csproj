@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WorldDomination.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>WorldDomination.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
-
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.18.0" />
