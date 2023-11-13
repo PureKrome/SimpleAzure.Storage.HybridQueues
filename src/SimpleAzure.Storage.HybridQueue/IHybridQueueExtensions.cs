@@ -45,6 +45,6 @@ public static class IHybridQueueExtensions
     /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
     /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
     /// <remarks>The content of the message will attempt to be deserialized from Json. If the message is a Primitive type or a string, then the Json deserialization will be still run but no error should occur.</remarks>
-    public static Task<HybridMessage<T>[]> GetMessagesAsync<T>(this IHybridQueue queue, CancellationToken cancellationToken) =>
+    public static Task<IReadOnlyList<HybridMessage<T>>> GetMessagesAsync<T>(this IHybridQueue queue, CancellationToken cancellationToken) =>
         queue.GetMessagesAsync<T>(32, null, cancellationToken);
 }

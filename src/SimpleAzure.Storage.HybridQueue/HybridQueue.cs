@@ -136,11 +136,11 @@ public sealed class HybridQueue(QueueClient queueClient, BlobContainerClient blo
         {
             [] => null,
             [{ } first] => first,
-            _ => throw new InvalidOperationException($"Expected 1 message but received {messages.Length} messages")
+            _ => throw new InvalidOperationException($"Expected 1 message but received {messages.Count} messages")
         };
     }
 
-    public async Task<HybridMessage<T>[]> GetMessagesAsync<T>(
+    public async Task<IReadOnlyList<HybridMessage<T>>> GetMessagesAsync<T>(
         int maxMessages,
         TimeSpan? visibilityTimeout,
         CancellationToken cancellationToken)
