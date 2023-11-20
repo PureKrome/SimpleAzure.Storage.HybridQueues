@@ -16,23 +16,32 @@ public sealed class HybridQueue(
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
     private readonly ILogger<HybridQueue> _logger = logger;
 
-    public async Task AddMessageAsync<T>(T item, TimeSpan? initialVisibilityDelay, CancellationToken cancellationToken)
+    public async Task AddMessageAsync<T>(
+        T item,
+        TimeSpan? initialVisibilityDelay,
+        bool isForcedOntoBlob,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        using var _ = _logger.BeginCustomScope(("queueName", _queueClient.Name));
+        using var _ = _logger.BeginCustomScope(
+            ("queueName", _queueClient.Name),
+            (nameof(isForcedOntoBlob), isForcedOntoBlob));
 
         _logger.LogDebug("Adding a message to a Hybrid Queue.");
 
         string message;
 
+
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
-        if (item is string stringItem)
+        if (!isForcedOntoBlob &&
+            item is string stringItem)
         {
             _logger.LogDebug("Item is a SimpleType: string.");
             message = stringItem;
         }
-        else if (typeof(T).IsASimpleType())
+        else if (!isForcedOntoBlob &&
+            typeof(T).IsASimpleType())
         {
             _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
@@ -42,29 +51,25 @@ public sealed class HybridQueue(
         }
         else
         {
-            // It's a complex type, so serialize this as Json.
-            _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
+            if (isForcedOntoBlob)
+            {
+                _logger.LogDebug("Is forced onto blob == true.");
+            }
+            else
+            {
+                _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
+            }
+
             message = JsonSerializer.Serialize(item);
         }
 
         // Is this item/content _too big_ for a normal queue-message?
-        var messageSize = Encoding.UTF8.GetByteCount(message);
-        if (messageSize > _queueClient.MessageMaxBytes)
+        var messageSize = isForcedOntoBlob
+            ? -1 // Don't need to determine the byte count because we 
+            : Encoding.UTF8.GetByteCount(message);
+        if (isForcedOntoBlob || messageSize > _queueClient.MessageMaxBytes)
         {
-            // Yes - yes it is. Too big.
-            // So lets store the content in Blob.
-            // Then get the BlobId
-            // Then store the BlobId GUID in the queue message.
-
-            _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
-
-            var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
-            var binaryData = new BinaryData(message);
-            await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken).ConfigureAwait(false);
-
-            message = blobId;
-
-            _logger.LogDebug("Item added to blob. BlobId: {blobId}. Status: {responseStatus}", blobId);
+            message = await AddMessageToStoreThenQueueAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
         }
 
         await _queueClient.SendMessageAsync(
@@ -80,6 +85,7 @@ public sealed class HybridQueue(
         IEnumerable<T> contents,
         TimeSpan? initialVisibilityDelay,
         int batchSize,
+        bool isForcedOntoBlob,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contents);
@@ -96,7 +102,7 @@ public sealed class HybridQueue(
         // Lets batch up these messages to make sure the awaiting of all the tasks doesn't go too crazy.
         foreach (var batch in contents.Chunk(batchSize))
         {
-            var tasks = batch.Select(content => AddMessageAsync(content, initialVisibilityDelay, cancellationToken));
+            var tasks = batch.Select(content => AddMessageAsync(content, initialVisibilityDelay, isForcedOntoBlob, cancellationToken));
 
             // Execute this batch.
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -174,6 +180,25 @@ public sealed class HybridQueue(
 
         var hybridMessages = await Task.WhenAll(hybridMessageTasks).ConfigureAwait(false);
         return hybridMessages;
+    }
+
+    private async Task<string> AddMessageToStoreThenQueueAsync(string message, int messageSize, CancellationToken cancellationToken)
+    {
+        // Yes - yes it is. Too big.
+        // So lets store the content in Blob.
+        // Then get the BlobId
+        // Then store the BlobId GUID in the queue message.
+
+        _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
+
+        var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
+        var binaryData = new BinaryData(message);
+        await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken).ConfigureAwait(false);
+
+        message = blobId;
+
+        _logger.LogDebug("Item added to blob. BlobId: {blobId}.", blobId);
+        return message;
     }
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)

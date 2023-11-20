@@ -21,6 +21,22 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
     }
 
     [Fact]
+    public async Task AddMessageAsync_GivenSomeSimpleStringAndFocedOntoTheBlob_ShouldAddTheMessageToTheBlobAndQueue()
+    {
+        // Arrange.
+        var cancellationToken = CancellationToken.None;
+        var message = "hello";
+
+        // Act.
+        await HybridQueue.AddMessageAsync(message, null, true, cancellationToken);
+
+        // Assert.
+        var retrievedMessage = await HybridQueue.GetMessageAsync<string>(cancellationToken);
+        retrievedMessage.ShouldNotBeNull();
+        retrievedMessage.Content.ShouldBe(message);
+    }
+
+    [Fact]
     public async Task AddMessageAsync_GivenASimpleInt_ShouldAddTheMessageToTheQueue()
     {
         // Arrange.
