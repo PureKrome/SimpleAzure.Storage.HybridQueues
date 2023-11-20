@@ -3,19 +3,19 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 public static class IHybridQueueExtensions
 {
     /// <summary>
-    /// Initiates an asynchronous operation to add an item to the queue.
+    /// Initiates an asynchronous operation to add an item to the queue and potentially the backing blob.
     /// </summary>
     /// <typeparam name="T">Type of item.</typeparam>
-    /// <param name="queue">The queue to operate on</param>
+    /// <param name="queue">The queue to operate on.</param>
     /// <param name="item">An item to add to the queue.</param>
     /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
     /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
     /// <remarks>If the item is a IsPrimitive (int, etc) or a string then it's stored -as is-. Otherwise, it is serialized to Json and then stored as Json.(</remarks>
     public static Task AddMessageAsync<T>(this IHybridQueue queue, T item, CancellationToken cancellationToken) =>
-        queue.AddMessageAsync(item, null, cancellationToken);
+        queue.AddMessageAsync(item, null, false, cancellationToken);
 
     /// <summary>
-    /// Initiates an asynchronous operation to add a batch messages to the queue.
+    /// Initiates an asynchronous operation to add a batch of messages to the queue and potentially the backing blob.
     /// </summary>
     /// <typeparam name="T">Type of item.</typeparam>
     /// <param name="queue">The queue to operate on</param>
@@ -24,10 +24,10 @@ public static class IHybridQueueExtensions
     /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
     /// <remarks>If any item is a IsPrimitive (int, etc) or a string then it's stored -as is-. Otherwise, it is serialized to Json and then stored as Json.(</remarks>
     public static Task AddMessagesAsync<T>(this IHybridQueue queue, IEnumerable<T> contents, CancellationToken cancellationToken) =>
-        queue.AddMessagesAsync(contents, null, 25, cancellationToken);
+        queue.AddMessagesAsync(contents, null, 25, false, cancellationToken);
 
     /// <summary>
-    /// Retrieves a message from a queue and wraps it in a simple Message class.
+    /// Retrieves a message from a queue and potentially the backing blob. It will then wrap it in a simple Message class.
     /// </summary>
     /// <typeparam name="T">Type of item.</typeparam>
     /// <param name="queue">The queue to operate on</param>
