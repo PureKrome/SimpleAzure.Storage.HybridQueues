@@ -1,6 +1,8 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using Microsoft.Extensions.Logging;
@@ -69,7 +71,7 @@ public sealed class HybridQueue(
             : Encoding.UTF8.GetByteCount(message);
         if (isForcedOntoBlob || messageSize > _queueClient.MessageMaxBytes)
         {
-            message = await AddMessageToStoreThenQueueAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
+            message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
         }
 
         await _queueClient.SendMessageAsync(
@@ -182,7 +184,7 @@ public sealed class HybridQueue(
         return hybridMessages;
     }
 
-    private async Task<string> AddMessageToStoreThenQueueAsync(string message, int messageSize, CancellationToken cancellationToken)
+    private async Task<string> AddJsonMessageToBlobStorageAsync(string jsonMessage, int messageSize, CancellationToken cancellationToken)
     {
         // Yes - yes it is. Too big.
         // So lets store the content in Blob.
@@ -192,13 +194,20 @@ public sealed class HybridQueue(
         _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
 
         var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
-        var binaryData = new BinaryData(message);
-        await _blobContainerClient.UploadBlobAsync(blobId, binaryData, cancellationToken).ConfigureAwait(false);
+        var content = new BinaryData(jsonMessage);
 
-        message = blobId;
+        var httpHeaders = new BlobHttpHeaders
+        {
+            ContentType = "application/json",
+        };
+
+        var blobClient = _blobContainerClient.GetBlobClient(blobId);
+        await blobClient
+            .UploadAsync(content, new BlobUploadOptions { HttpHeaders = httpHeaders }, cancellationToken)
+            .ConfigureAwait(false);
 
         _logger.LogDebug("Item added to blob. BlobId: {blobId}.", blobId);
-        return message;
+        return blobId;
     }
 
     private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
