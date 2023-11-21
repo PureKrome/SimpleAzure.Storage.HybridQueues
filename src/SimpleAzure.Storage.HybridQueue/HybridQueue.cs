@@ -18,7 +18,12 @@ public sealed class HybridQueue(
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
     private readonly ILogger<HybridQueue> _logger = logger;
 
-    public async Task AddMessageAsync<T>(
+    private static readonly BlobHttpHeaders _httpHeaders = new()
+    {
+        ContentType = "application/json",
+    };
+
+public async Task AddMessageAsync<T>(
         T item,
         TimeSpan? initialVisibilityDelay,
         bool isForcedOntoBlob,
@@ -71,6 +76,11 @@ public sealed class HybridQueue(
             : Encoding.UTF8.GetByteCount(message);
         if (isForcedOntoBlob || messageSize > _queueClient.MessageMaxBytes)
         {
+            if (!isForcedOntoBlob)
+            {
+               _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
+            }
+
             message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
         }
 
@@ -134,7 +144,9 @@ public sealed class HybridQueue(
             }
         }
 
-        var queueResponse = await _queueClient.DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken).ConfigureAwait(false);
+        var queueResponse = await _queueClient
+            .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken)
+            .ConfigureAwait(false);
 
         _logger.LogDebug("Deleted a message from the queue.");
     }
@@ -176,7 +188,7 @@ public sealed class HybridQueue(
             return Array.Empty<HybridMessage<T>>();
         }
 
-        _logger.LogDebug("Received {} messages from queue.", messages.Length);
+        _logger.LogDebug("Received {messageCount} messages from queue.", messages.Length);
 
         var hybridMessageTasks = messages.Select(x => ParseMessageAsync<T>(x, cancellationToken));
 
@@ -191,19 +203,12 @@ public sealed class HybridQueue(
         // Then get the BlobId
         // Then store the BlobId GUID in the queue message.
 
-        _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
-
         var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
         var content = new BinaryData(jsonMessage);
 
-        var httpHeaders = new BlobHttpHeaders
-        {
-            ContentType = "application/json",
-        };
-
         var blobClient = _blobContainerClient.GetBlobClient(blobId);
         await blobClient
-            .UploadAsync(content, new BlobUploadOptions { HttpHeaders = httpHeaders }, cancellationToken)
+            .UploadAsync(content, new BlobUploadOptions { HttpHeaders = _httpHeaders }, cancellationToken)
             .ConfigureAwait(false);
 
         _logger.LogDebug("Item added to blob. BlobId: {blobId}.", blobId);
