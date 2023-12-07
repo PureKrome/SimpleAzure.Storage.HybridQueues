@@ -1,6 +1,4 @@
-using Shouldly;
-
-namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTests.AddMessageAsyncTests;
+namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTests.HybridQueueTests;
 
 public class AddMessageAsyncTests : CustomAzuriteTestContainer
 {

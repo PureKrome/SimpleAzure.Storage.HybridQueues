@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34221.43
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2FA40C61-766B-49BC-8F27-E32F27503D41}"
+	ProjectSection(SolutionItems) = preProject
+		ChangeLog.md = ChangeLog.md
+		global.json = global.json
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub", "GitHub", "{6E67C07E-34E7-4766-AF7C-709AEAADEFB6}"
+	ProjectSection(SolutionItems) = preProject
+		.github\CODE_OF_CONDUCT.md = .github\CODE_OF_CONDUCT.md
+		.github\CONTRIBUTING.md = .github\CONTRIBUTING.md
+		.github\FUNDING.yml = .github\FUNDING.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{98455CD5-5B65-492E-AC6A-97CBB58FC3E9}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\MergeToMain.yml = .github\workflows\MergeToMain.yml
+		.github\workflows\PullRequest.yml = .github\workflows\PullRequest.yml
+		.github\workflows\Release.yml = .github\workflows\Release.yml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleAzure.Storage.HybridQueues", "src\SimpleAzure.Storage.HybridQueues\SimpleAzure.Storage.HybridQueues.csproj", "{5AE0AA98-E78B-470D-812B-783C58C4B31C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleAzure.Storage.HybridQueues.Tests", "src\SimpleAzure.Storage.HybridQueues.Tests\SimpleAzure.Storage.HybridQueues.Tests.csproj", "{C8836410-A303-4A19-A366-4DB4E37C0B80}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5AE0AA98-E78B-470D-812B-783C58C4B31C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AE0AA98-E78B-470D-812B-783C58C4B31C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AE0AA98-E78B-470D-812B-783C58C4B31C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AE0AA98-E78B-470D-812B-783C58C4B31C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8836410-A303-4A19-A366-4DB4E37C0B80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8836410-A303-4A19-A366-4DB4E37C0B80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8836410-A303-4A19-A366-4DB4E37C0B80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8836410-A303-4A19-A366-4DB4E37C0B80}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6E67C07E-34E7-4766-AF7C-709AEAADEFB6} = {2FA40C61-766B-49BC-8F27-E32F27503D41}
+		{98455CD5-5B65-492E-AC6A-97CBB58FC3E9} = {6E67C07E-34E7-4766-AF7C-709AEAADEFB6}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5EACA9DD-79BA-4F5C-806E-00E98C54BD5D}
+	EndGlobalSection
+EndGlobal

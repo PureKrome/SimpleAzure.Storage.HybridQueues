@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleAzure.Storage.HybridQueue\SimpleAzure.Storage.HybridQueue.csproj" />
+    <ProjectReference Include="..\SimpleAzure.Storage.HybridQueues\SimpleAzure.Storage.HybridQueues.csproj" />
   </ItemGroup>
 
 </Project>
