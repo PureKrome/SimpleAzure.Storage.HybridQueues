@@ -1,7 +1,11 @@
+using Azure.Storage.Queues;
+
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTests.GetMessagesAsyncTests
 {
     public class GetMessagesAsyncTests : CustomAzuriteTestContainer
     {
+        private const string ValidNullJson = "null";
+
         [Theory]
         [InlineData(0)]
         [InlineData(33)]
@@ -59,11 +63,31 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
             // Now we expect a "FakeMessage" type on the blob item, so lets hack the blob to be anything but that.
             // We do this by deleting the existing one and uploading a new one.
             var existingBlobClient = BlobContainerClient.GetBlobClient(retrievedMessage.BlobId.ToString());
-            var content = new BinaryData("null"); // Bad Data - not a FakeMessage. This is valid JSON which is deserialized to null 🙃
+            var content = new BinaryData(ValidNullJson); // Bad Data - not a FakeMessage. This is valid JSON which is deserialized to null 🙃
             await existingBlobClient.UploadAsync(content, true, cancellationToken);
 
             // Act.
-            var exception = await Should.ThrowAsync<InvalidOperationException>(async () => await HybridQueue.GetMessageAsync<string>(cancellationToken));
+            var exception = await Should.ThrowAsync<InvalidOperationException>(HybridQueue.GetMessageAsync<string>(cancellationToken));
+
+            // Assert.
+            exception.ShouldNotBeNull();
+        }
+
+        [Fact]
+        public async Task GetMessagesAsync_GivenTheQueueItemCannotBeDeserialized_ShouldThrowAnException()
+        {
+            // Arrange.
+            var cancellationToken = CancellationToken.None;
+
+            // Hack the message queue by manually placing a "bad" json payload onto the queue.
+            await QueueClient.SendMessageAsync(
+                ValidNullJson,
+                null,
+                null,
+                cancellationToken);
+
+            // Act.
+            var exception = await Should.ThrowAsync<InvalidOperationException>(HybridQueue.GetMessageAsync<FakeMessage>(cancellationToken));
 
             // Assert.
             exception.ShouldNotBeNull();
