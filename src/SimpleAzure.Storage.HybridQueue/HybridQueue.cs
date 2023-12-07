@@ -101,15 +101,11 @@ public async Task AddMessageAsync<T>(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contents);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchSize);
 
         using var _ = _logger.BeginCustomScope(
             (nameof(batchSize), batchSize),
             ("queueName", _queueClient.Name));
-
-        if (batchSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(batchSize));
-        }
 
         // Lets batch up these messages to make sure the awaiting of all the tasks doesn't go too crazy.
         foreach (var batch in contents.Chunk(batchSize))

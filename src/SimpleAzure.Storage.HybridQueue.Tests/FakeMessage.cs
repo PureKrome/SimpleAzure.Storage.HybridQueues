@@ -15,10 +15,7 @@ internal class FakeMessage
 
     private static string GenerateContent(int length)
     {
-        if (length <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(length));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
 
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
