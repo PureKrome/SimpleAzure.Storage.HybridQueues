@@ -74,6 +74,7 @@ public async Task AddMessageAsync<T>(
         var messageSize = isForcedOntoBlob
             ? -1 // Don't need to determine the byte count because we 
             : Encoding.UTF8.GetByteCount(message);
+
         if (isForcedOntoBlob || messageSize > _queueClient.MessageMaxBytes)
         {
             if (!isForcedOntoBlob)
@@ -178,9 +179,11 @@ public async Task AddMessageAsync<T>(
         _logger.LogDebug("About to receive queue message.");
 
         var response = await _queueClient.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
-        if (response?.Value is not { } messages)
+        var messages = response.Value;
+
+        if (messages.Length <= 0)
         {
-            _logger.LogDebug("Response was null or there were no Queue messages retrieved.");
+            _logger.LogDebug("No Queue messages retrieved.");
             return Array.Empty<HybridMessage<T>>();
         }
 
