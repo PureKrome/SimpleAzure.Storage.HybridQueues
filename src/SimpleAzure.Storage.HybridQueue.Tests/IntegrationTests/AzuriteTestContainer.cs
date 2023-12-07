@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Testcontainers.Azurite;
 
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTests;
@@ -23,6 +24,8 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
 
     protected IHybridQueue HybridQueue { get { return _hybridQueue!; } }
 
+    protected FakeLogger<HybridQueue> Logger { get; } = new FakeLogger<HybridQueue>();
+
     public async Task DisposeAsync()
     {
         await _azuriteContainer.DisposeAsync();
@@ -46,8 +49,6 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
         await QueueClient.CreateIfNotExistsAsync(cancellationToken: cts.Token);
         await BlobContainerClient.CreateIfNotExistsAsync(cancellationToken: cts.Token);
 
-        var logger = new Mock<ILogger<HybridQueue>>();
-
-        _hybridQueue = new HybridQueue(QueueClient, BlobContainerClient, logger.Object);
+        _hybridQueue = new HybridQueue(QueueClient, BlobContainerClient, Logger);
     }
 }
