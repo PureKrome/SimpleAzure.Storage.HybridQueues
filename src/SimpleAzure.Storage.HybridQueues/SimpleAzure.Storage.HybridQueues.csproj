@@ -6,9 +6,14 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WorldDomination.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>WorldDomination.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <Version>0.1.0</Version>
     <Title>Simple: Azure Storage Hybrid Queues</Title>
     <Company>World Domination Technolgoies Pty. Ltd.</Company>
     <Authors>Justin Adler</Authors>
+    <Description>
+        This client library enables working A Hybrid Queue: the concept of throwing anything onto a normal Queue and if the size of the Message (which contains your content) is too big, 
+        it then automatically puts your content into a Blob (which can contain any size**) and then stores the reference to the blob in the queue!
+    </Description>
     <Product>Storage Hybrid Queue</Product>
     <Copyright>2023</Copyright>
     <PackageIcon>icon.jpg</PackageIcon>
