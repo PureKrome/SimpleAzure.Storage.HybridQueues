@@ -1,3 +1,5 @@
+using Azure.Storage.Queues.Models;
+
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 
 public interface IHybridQueue
@@ -68,4 +70,13 @@ public interface IHybridQueue
         int maxMessages,
         TimeSpan? visibilityTimeout,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Parses a QueueMessage into a HybridMessage with the smarts of retreiving the data from a blob, if required.
+    /// </summary>
+    /// <typeparam name="T">Type of item.</typeparam>
+    /// <param name="queueMessage">Azure Storage QueueMessage.</param>
+    /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
+    /// <returns>A HybridMessage with the relevant message content and extra Azure Storage Queue/Blob meta data.</returns>
+    Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken);
 }

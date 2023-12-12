@@ -22,7 +22,7 @@ public sealed class HybridQueue(
         ContentType = "application/json",
     };
 
-public async Task AddMessageAsync<T>(
+    public async Task AddMessageAsync<T>(
         T item,
         TimeSpan? initialVisibilityDelay,
         bool isForcedOntoBlob,
@@ -194,26 +194,7 @@ public async Task AddMessageAsync<T>(
         return hybridMessages;
     }
 
-    private async Task<string> AddJsonMessageToBlobStorageAsync(string jsonMessage, int messageSize, CancellationToken cancellationToken)
-    {
-        // Yes - yes it is. Too big.
-        // So lets store the content in Blob.
-        // Then get the BlobId
-        // Then store the BlobId GUID in the queue message.
-
-        var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
-        var content = new BinaryData(jsonMessage);
-
-        var blobClient = _blobContainerClient.GetBlobClient(blobId);
-        await blobClient
-            .UploadAsync(content, new BlobUploadOptions { HttpHeaders = _httpHeaders }, cancellationToken)
-            .ConfigureAwait(false);
-
-        _logger.LogDebug("Item added to blob. BlobId: {blobId}.", blobId);
-        return blobId;
-    }
-
-    private async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
+    public async Task<HybridMessage<T>> ParseMessageAsync<T>(QueueMessage queueMessage, CancellationToken cancellationToken)
     {
         var message = queueMessage.Body.ToString().AssumeNotNull();
 
@@ -262,5 +243,24 @@ public async Task AddMessageAsync<T>(
 
             return new HybridMessage<T>(item, queueMessage.MessageId, queueMessage.PopReceipt, null);
         }
+    }
+
+    private async Task<string> AddJsonMessageToBlobStorageAsync(string jsonMessage, int messageSize, CancellationToken cancellationToken)
+    {
+        // Yes - yes it is. Too big.
+        // So lets store the content in Blob.
+        // Then get the BlobId
+        // Then store the BlobId GUID in the queue message.
+
+        var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
+        var content = new BinaryData(jsonMessage);
+
+        var blobClient = _blobContainerClient.GetBlobClient(blobId);
+        await blobClient
+            .UploadAsync(content, new BlobUploadOptions { HttpHeaders = _httpHeaders }, cancellationToken)
+            .ConfigureAwait(false);
+
+        _logger.LogDebug("Item added to blob. BlobId: {blobId}.", blobId);
+        return blobId;
     }
 }
