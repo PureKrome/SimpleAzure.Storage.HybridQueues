@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WorldDomination.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>WorldDomination.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
-    <Version>0.1.0</Version>
     <Title>Simple: Azure Storage Hybrid Queues</Title>
     <Company>World Domination Technolgoies Pty. Ltd.</Company>
     <Authors>Justin Adler</Authors>
