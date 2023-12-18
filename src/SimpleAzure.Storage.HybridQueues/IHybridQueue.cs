@@ -5,6 +5,14 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 public interface IHybridQueue
 {
     /// <summary>
+    /// Easy way to setup the required storage container/queue.
+    /// </summary>
+    /// <param name="isLoggingEnabled">Do we log any results?</param>
+    /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
+    /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
+    Task SetupContainerStorageAsync(bool isLoggingEnabled, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Initiates an asynchronous operation to add an item to the queue and potentially the backing blob.
     /// </summary>
     /// <typeparam name="T">Type of item.</typeparam>
@@ -19,7 +27,6 @@ public interface IHybridQueue
         TimeSpan? initialVisibilityDelay,
         bool isForcedOntoBlob,
         CancellationToken cancellationToken);
-
 
     /// <summary>
     /// Initiates an asynchronous operation to add a batch of messages to the queue and potentially the backing blob.

@@ -3,6 +3,14 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues;
 public static class IHybridQueueExtensions
 {
     /// <summary>
+    /// Easy way to setup the required storage container/queue.
+    /// </summary>
+    /// <param name="cancellationToken">A System.Threading.CancellationToken to observe while waiting for a task to complete.</param>
+    /// <returns>A System.Threading.Tasks.Task object that represents the asynchronous operation.</returns>
+    public static Task SetupContainerStorageAsync(this IHybridQueue queue, CancellationToken cancellationToken) =>
+        queue.SetupContainerStorageAsync(true, cancellationToken);
+
+    /// <summary>
     /// Initiates an asynchronous operation to add an item to the queue and potentially the backing blob.
     /// </summary>
     /// <typeparam name="T">Type of item.</typeparam>

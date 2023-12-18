@@ -22,6 +22,42 @@ public sealed class HybridQueue(
         ContentType = "application/json",
     };
 
+    public async Task SetupContainerStorageAsync(bool isLoggingEnabled, CancellationToken cancellationToken)
+    {
+        var blobAzureResponse = await _blobContainerClient
+            .CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        if (isLoggingEnabled)
+        {
+            if (blobAzureResponse?.Value != null)
+            {
+                _logger.LogInformation("❌ Missing Hybrid storage container - creating a new one.");
+            }
+        else
+            {
+                _logger.LogDebug("✅ Hybrid storage container already exists.");
+                
+            }
+        }
+
+        var queueAzureResponse = await _queueClient
+            .CreateIfNotExistsAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        if (isLoggingEnabled)
+        {
+            if (queueAzureResponse != null)
+            {
+                _logger.LogInformation("❌ Missing Hybrid storage queue - creating a new one.");
+            }
+            else
+            {
+                _logger.LogDebug("✅ Hybrid storage queue already exists.");
+            }
+        }
+    }
+
     public async Task AddMessageAsync<T>(
         T item,
         TimeSpan? initialVisibilityDelay,
