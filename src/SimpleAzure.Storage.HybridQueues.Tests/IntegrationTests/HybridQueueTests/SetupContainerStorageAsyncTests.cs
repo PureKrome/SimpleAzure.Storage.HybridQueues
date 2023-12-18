@@ -6,6 +6,20 @@ public class SetupContainerStorageAsyncTests : CustomAzuriteTestContainer
     {
     }
 
+    [Fact]
+    public async Task SetupContainerStorageAsync_GivenSomeContainerThatDoesntExistAndShouldHaveLoggingEnabled_ShouldCreateTheContainer()
+    {
+        // Arrange.
+        var cancellationToken = CancellationToken.None;
+
+        // Act.
+        await HybridQueue.SetupContainerStorageAsync(cancellationToken); // Logging should be enabled via this overload method.
+
+        // Assert.
+        await AssertContainerExists(ConnectionString, ContainerName, cancellationToken);
+        Logger.Collector.Count.ShouldBe(2);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
