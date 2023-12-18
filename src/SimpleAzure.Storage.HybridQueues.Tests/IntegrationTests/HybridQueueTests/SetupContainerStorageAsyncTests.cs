@@ -6,61 +6,69 @@ public class SetupContainerStorageAsyncTests : CustomAzuriteTestContainer
     {
     }
 
-    [Fact]
-    public async Task SetupContainerStorageAsync_GivenSomeContainerThatDoesntExist_ShouldCreateTheContainer()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SetupContainerStorageAsync_GivenSomeContainerThatDoesntExist_ShouldCreateTheContainer(bool isLoggingEnabled)
     {
         // Arrange.
         var cancellationToken = CancellationToken.None;
 
         // Act.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken);
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken);
 
         // Assert.
         await AssertContainerExists(ConnectionString, ContainerName, cancellationToken);
     }
 
-    [Fact]
-    public async Task SetupContainerStorageAsync_GivenSomeContainerThatAlreadyExists_ShouldNotDoAnything()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SetupContainerStorageAsync_GivenSomeContainerThatAlreadyExists_ShouldNotDoAnything(bool isLoggingEnabled)
     {
         // Arrange.
         var cancellationToken = CancellationToken.None;
 
         // This creates the container.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken);
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken);
         await AssertContainerExists(ConnectionString, ContainerName, cancellationToken);
 
         // Act.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken); // No errors should occur.
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken); // No errors should occur.
 
         // Assert.
         await AssertContainerExists(ConnectionString, ContainerName, cancellationToken); // Container still exists.
     }
 
-    [Fact]
-    public async Task SetupQueueStorageAsync_GivenSomeQueueThatDoesntExist_ShouldCreateTheQueue()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SetupQueueStorageAsync_GivenSomeQueueThatDoesntExist_ShouldCreateTheQueue(bool isLoggingEnabled)
     {
         // Arrange.
         var cancellationToken = CancellationToken.None;
 
         // Act.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken);
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken);
 
         // Assert.
         await AssertQueueExists(ConnectionString, QueueName, cancellationToken);
     }
 
-    [Fact]
-    public async Task SetupQueueStorageAsync_GivenSomeQueueThatAlreadyExists_ShouldNotDoAnything()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SetupQueueStorageAsync_GivenSomeQueueThatAlreadyExists_ShouldNotDoAnything(bool isLoggingEnabled)
     {
         // Arrange.
         var cancellationToken = CancellationToken.None;
 
         // This creates the queue.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken);
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken);
         await AssertQueueExists(ConnectionString, QueueName, cancellationToken);
 
         // Act.
-        await HybridQueue.SetupContainerStorageAsync(false, cancellationToken); // No errors should occur.
+        await HybridQueue.SetupContainerStorageAsync(isLoggingEnabled, cancellationToken); // No errors should occur.
 
         // Assert.
         await AssertQueueExists(ConnectionString, QueueName, cancellationToken); // Queue still exists.
