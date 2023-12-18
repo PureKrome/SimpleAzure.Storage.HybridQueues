@@ -32,12 +32,13 @@ public sealed class HybridQueue(
         if (isLoggingEnabled)
         {
             if (blobAzureResponse?.Value != null)
-        {
-                _logger.LogDebug("✅ Hybrid storage container already exists.");
+            {
+                _logger.LogInformation("❌ Missing Hybrid storage container - creating a new one.");
             }
         else
             {
-                _logger.LogInformation("❌ Missing Hybrid storage container - creating a new one.");
+                _logger.LogDebug("✅ Hybrid storage container already exists.");
+                
             }
         }
 
@@ -49,11 +50,11 @@ public sealed class HybridQueue(
         {
             if (queueAzureResponse != null)
             {
-                _logger.LogDebug("✅ Hybrid storage queue already exists.");
+                _logger.LogInformation("❌ Missing Hybrid storage queue - creating a new one.");
             }
             else
             {
-                _logger.LogInformation("❌ Missing Hybrid storage queue - creating a new one.");
+                _logger.LogDebug("✅ Hybrid storage queue already exists.");
             }
         }
     }
