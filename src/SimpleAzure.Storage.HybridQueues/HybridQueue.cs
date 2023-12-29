@@ -22,6 +22,11 @@ public sealed class HybridQueue(
         ContentType = "application/json",
     };
 
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public async Task SetupContainerStorageAsync(bool isLoggingEnabled, CancellationToken cancellationToken)
     {
         var blobAzureResponse = await _blobContainerClient
@@ -234,6 +239,8 @@ public sealed class HybridQueue(
     {
         var message = queueMessage.Body.ToString().AssumeNotNull();
 
+        // Queue Message: Guid == item is in Blob Storage.
+        // Blob Storage: Complex Type. Json message.
         if (Guid.TryParse(message, out var blobId))
         {
             using var _ = _logger.BeginCustomScope((nameof(blobId), blobId));
@@ -245,7 +252,8 @@ public sealed class HybridQueue(
             using var stream = await blobClient.OpenReadAsync(null, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("About to deserialize stream for a blob item from Blob Storage.");
-            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            var blobItem = await JsonSerializer.DeserializeAsync<T>(stream, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Finished deserializing stream for a blob item from Blob Storage.");
 
             if (blobItem is null)
@@ -256,6 +264,9 @@ public sealed class HybridQueue(
             var hybridMessage = new HybridMessage<T>(blobItem, queueMessage.MessageId, queueMessage.PopReceipt, blobId);
             return hybridMessage;
         }
+
+        // Queue Message: simple type. Not JSON.
+        // Blob Storage: N/A
         else if (typeof(T).IsASimpleType())
         {
             _logger.LogDebug("Retrieving item: which is a simle type and not a guid/not in Blob Storage.");
@@ -266,12 +277,15 @@ public sealed class HybridQueue(
             var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
             return hybridMessage;
         }
+
+        // Queue Message: complex type. Json.
+        // Blob Storage: N/A
         else
         {
             // Complex type, so lets assume it was serialized as Json ... so now we deserialize it.
             _logger.LogDebug("Retrieving a complex item: assumed as json so deserializing it.");
 
-            var item = JsonSerializer.Deserialize<T>(message);
+            var item = JsonSerializer.Deserialize<T>(message, _jsonSerializerOptions);
             if (item is null)
             {
                 throw new InvalidOperationException($"Could not deserialize complex type for message '{queueMessage.MessageId}'.");
