@@ -3,8 +3,13 @@ name: Publish to Nuget.org and GPR
 on:
   push:
     tags:
-      - "v*.*.*"
       - "*.*.*"
+    paths-ignore:
+      - '.editorconfig'
+      - 'ReadMe.md'
+      - 'ChangeLog.md'
+      - '.github/workflows/PullRequest.yml'
+      - '.github/workflows/MergeToMain.yml'
 
 permissions:
   contents: write

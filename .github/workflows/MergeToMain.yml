@@ -3,6 +3,12 @@ name: Merge Pull Requests into 'main'
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.editorconfig'
+      - 'ReadMe.md'
+      - 'ChangeLog.md'
+      - '.github/workflows/PullRequest.yml'
+      - '.github/workflows/Release.yml'
 
 permissions:
   packages: write
