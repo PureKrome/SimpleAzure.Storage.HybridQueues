@@ -1,7 +1,8 @@
 <h1 align="center">Simple: Azure Storage Hybrid Queues</h1>
 
 <div align="center">
-  Making it simple to add your items to an Azure Storage Queue and Blob (if required)
+  Making it simple to add your items to an Azure Storage Queue and Blob (if required).<br/><br/>
+  <i>Stop worrying if your the item will be too big for the queue.</i>
 </div>
 
 <br />
@@ -33,7 +34,7 @@ So if you try and place your content into a queue and the content is too big, th
 
 A **Hybrid Queue** is the concept of throwing _anything_ onto a normal Queue and if the size of the Message
 (which contains your content) is too big, it then _automatically_ puts your content into a Blob (which
-can contain _any size_**) and then stores the reference to the blob in the queue!
+can contain _any size_**) and then stores the _reference to the blob item_ in the queue!
 
 Both directions (sending a message to the queue and popping a message off the queue) handle the smarts if the message is
 too big and needs to retrieve the contents from the blob.
@@ -61,7 +62,7 @@ CLI: `install-package WorldDomination.SimpleAzure.Storage.HybridQueues`
 ```c#
 
 // _queueClient, _blobContainerClient and _logger would be injected via your IoC/DI
-// These are normally setup in elsewhere, like in your startup.cs, etc.
+// These are normally setup in elsewhere, like in your program.cs, etc.
 // e.g.
 //    _queueClient = new QueueClient(connectionStringText, "test-queue");
 //    _blobContainerClient = new BlobContainerClient(connectionStringText, "test-container");
@@ -75,7 +76,7 @@ var message = "hello";
 // Adding the content to the queue.
 await hybridQueue.AddMessageAsync(message, cancellationToken);
 
-// The queue message will contain the value 'hello'.
+// The queue message will contain the value 'hello'. Nothing will be placed into the blob container.
 ```
 
 ### 2. A simple POCO
@@ -101,13 +102,8 @@ await hybridQueue.AddMessageAsync(user, cancellationToken);
 // Generate some really long content larger than the queue size.
 const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-var random = Random.Shared;
 var length = queueClient.MessageMaxBytes + 1; // Just larger than the queue message max size.
-
-var longName = new string(Enumerable
-    .Repeat(chars, length)
-    .Select(s => s[random.Next(s.Length)])
-    .ToArray());
+var longName = new string("a", length);
 
 // Create our POCO
 public record User(string Name, int Age);
