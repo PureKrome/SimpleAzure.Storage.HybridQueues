@@ -67,12 +67,14 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
         retrievedMessage.Content.Content.ShouldBe(message.Content);
     }
 
-    [Fact]
-    public async Task AddMessageAsync_GivenALargeComplexInstance_ShouldAddTheMessageToABlogAndThenAGuidToTheQueue()
+    [Theory]
+    [InlineData(65536 + 1)] // 64kb which is the max for Plain Text encoded queues.
+    [InlineData(49152 + 1)] // 48kb which is the max for Base64 encoded queues.
+    public async Task AddMessageAsync_GivenALargeComplexInstance_ShouldAddTheMessageToABlogAndThenAGuidToTheQueue(int messageMaxBytes)
     {
         // Arrange.
         var cancellationToken = CancellationToken.None;
-        var message = new FakeMessage(QueueClient.MessageMaxBytes + 1);
+        var message = new FakeMessage(messageMaxBytes);
 
         // Act.
         await HybridQueue.AddMessageAsync(message, cancellationToken);

@@ -13,6 +13,9 @@ public sealed class HybridQueue(
     BlobContainerClient blobContainerClient,
     ILogger<HybridQueue> logger) : IHybridQueue
 {
+    private const int MessageSize = 49152; // 48KB as bytes. The message size for plain text is 64KB and Base64 is 48KB. We can't
+                                           // access the MessageEncoding value so we have to be conservative and stick with the lower value -> 48KB
+
     private readonly QueueClient _queueClient = queueClient;
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
     private readonly ILogger<HybridQueue> _logger = logger;
@@ -115,21 +118,31 @@ public sealed class HybridQueue(
             ? -1 // Don't need to determine the byte count because we 
             : Encoding.UTF8.GetByteCount(message);
 
-        if (isForcedOntoBlob || messageSize > _queueClient.MessageMaxBytes)
+        using var __ = _logger.BeginCustomScope((nameof(messageSize), messageSize));
+
+        if (isForcedOntoBlob || messageSize > MessageSize)
         {
             if (!isForcedOntoBlob)
             {
-               _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize}", messageSize);
+               _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize:N0} bytes", messageSize);
             }
 
             message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
         }
 
-        await _queueClient.SendMessageAsync(
-            message,
-            initialVisibilityDelay,
-            null,
-            cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _queueClient.SendMessageAsync(
+                message,
+                initialVisibilityDelay,
+                null,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to add an Item to the queue. Error: {errorMessage}", exception.Message);
+            throw;
+        }
 
         _logger.LogDebug("Finished adding an Item to the queue.");
     }

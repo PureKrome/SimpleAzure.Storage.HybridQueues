@@ -25,7 +25,7 @@
 Queues are a common computer-science concept: **a system that stores an ordered, linear sequence of Items**.
 Usually the Items are `Messages` which is just fancy-pants container your data + other special metadata.
 
-Messages have a size limit, though. For example, [Azure Storage Queues have a size limit of 64KB](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction).
+Messages have a size limit, though. For example, [Azure Storage Queues have a size limit of 64KB for Plain Text messages or 48KB for Base64 Encoded](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction).
 
 So if you try and place your content into a queue and the content is too big, then you will get an error.
 
@@ -45,6 +45,9 @@ So if you have a custom POCO, it's serialized to Json, then stored in the queue 
 
 <h4 align="center">So now handling larger content with Queues is made Simple!</h4>
 
+_Note about message size limits: the Azure Queue SDK doesn't allow you to ask what Encoding is used for messages for the queue.
+Base64? Plain Text? As such, we need to assume the worst and set the max size limit to the lower-sized Base64 limit of 48KB.
+Anything larger will then be stored in a blob._
 
 ---
 
