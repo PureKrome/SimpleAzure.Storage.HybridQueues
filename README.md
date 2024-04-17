@@ -32,18 +32,15 @@ So if you try and place your content into a queue and the content is too big, th
 <h4 align="center">Enter ➡️ Hybrid Queue's.</h4>
 <br/>
 
-A **Hybrid Queue** is the concept of throwing _anything_ onto a normal Queue and if the size of the Message
-(which contains your content) is too big, it then _automatically_ puts your content into a Blob (which
-can contain _any size_**) and then stores the _reference to the blob item_ in the queue!
+A **Hybrid Queue** is the concept of throwing _anything_ onto a normal Queue and if the size of the Message (which contains your content) is too big, it then _automatically_ puts your content into a Blob (which can contain _any size_**) and then stores the _reference to the blob item_ in the queue!
 
-Both directions (sending a message to the queue and popping a message off the queue) handle the smarts if the message is
-too big and needs to retrieve the contents from the blob.
+Both directions (sending a message to the queue and popping a message off the queue) handle the smarts if the message is too big and needs to retrieve the contents from the blob.
 
-Under the hood, if the content is not a [Primitive Type](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types)
-like a `string` or `int`, etc (more or less), then we convert the content to a Json representation of the source item.
-So if you have a custom POCO, it's serialized to Json, then stored in the queue or blob, based on the final size.
+Under the hood, if the content is not a [Primitive Type](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types) like a `string` or `int`, etc (more or less), then we convert the content to a Json representation of the source item. So if you have a custom POCO, it's serialized to Json, then stored in the queue or blob, based on the final size.
 
 <h4 align="center">So now handling larger content with Queues is made Simple!</h4>
+
+📌 _Attribution:_ This original idea was engineered by [Jason Ashman](https://github.com/kotmfu) who created the original Hybrid Queue (Private Homely code). This is an updated version based entirely on his original concept and effort.
 
 _Note about message size limits: the Azure Queue SDK doesn't allow you to ask what Encoding is used for messages for the queue.
 Base64? Plain Text? As such, we need to assume the worst and set the max size limit to the lower-sized Base64 limit of 48KB.
