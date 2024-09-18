@@ -32,10 +32,6 @@ internal static class Helpers
     asddsfafdas
 
 
-        asfasddafs
 
-        asdfdasfdsaf
-
-
-        asddfsasfad
+        asddfsasfadasdfdasfdsaf
 }
