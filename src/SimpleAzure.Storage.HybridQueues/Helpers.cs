@@ -26,12 +26,6 @@ internal static class Helpers
         [CallerArgumentExpression(nameof(item))] string? expr = null)
         where T : class
     {
-        return item ?? throw new InvalidOperationException($"Expected '{expr}' to be non-null.");
+        return item ?? throw new InvalidOperationException("fdgdsfgdsfgdsfgsdfgdfsg.");
     }
-
-    asddsfafdas
-
-
-
-        asddfsasfadasdfdasfdsaf
 }
