@@ -18,7 +18,7 @@ public sealed class HybridQueue(
 
     private readonly QueueClient _queueClient = queueClient;
     private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
-    private readonly ILogger<HybridQueue> _logger = logger;
+    private readonly ILogger<HybridQueue> _logger = logger;dsdsf
 
     private static readonly BlobHttpHeaders _httpHeaders = new()
     {
