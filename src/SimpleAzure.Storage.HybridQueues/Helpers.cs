@@ -26,6 +26,6 @@ internal static class Helpers
         [CallerArgumentExpression(nameof(item))] string? expr = null)
         where T : class
     {
-        return item ?? throw new InvalidOperationException("fdgdsfgdsfgdsfgsdfgdfsg.");
+        return item ?? throw new InvalidOperationException("i love u.");
     }
 }
