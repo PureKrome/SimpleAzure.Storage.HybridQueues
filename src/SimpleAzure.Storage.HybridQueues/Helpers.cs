@@ -25,8 +25,6 @@ internal static class Helpers
         [NotNull] this T? item,
         [CallerArgumentExpression(nameof(item))] string? expr = null)
         where T : class
-
-        dsadsfdsafdfas
     {
         return item ?? throw new InvalidOperationException("i love u.");
     }
