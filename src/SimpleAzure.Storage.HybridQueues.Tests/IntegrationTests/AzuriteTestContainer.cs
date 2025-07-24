@@ -20,6 +20,7 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
 
         _azuriteContainer = new AzuriteBuilder()
             .WithImage("mcr.microsoft.com/azure-storage/azurite")
+            .WithCommand("--skipApiVersionCheck")
             .Build();
     }
 
