@@ -18,8 +18,7 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
     {
         _areResourcesCreated = areResourcesCreated;
 
-        _azuriteContainer = new AzuriteBuilder()
-            .WithImage("mcr.microsoft.com/azure-storage/azurite")
+        _azuriteContainer = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite")
             // Temporary workaround for Azurite compatibility with the latest Azure SDK.
             // This flag should be removed once Azurite is updated to support the latest API versions.
             .WithCommand("--skipApiVersionCheck")
