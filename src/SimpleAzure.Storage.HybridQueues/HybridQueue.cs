@@ -135,14 +135,15 @@ public sealed class HybridQueue(
                 // Simple types (string, int, decimal, …) were prepared above as raw, unquoted strings
                 // because that is the correct format for direct queue storage (e.g. message = "hello world"
                 // or message = "42"). However, blob storage is always read back via
-                // JsonSerializer.DeserializeAsync<T>, which requires valid JSON. A raw value is not valid
-                // JSON, so deserialization would throw or silently return null, losing the message.
+                // JsonSerializer.DeserializeAsync<T>, which requires valid JSON. A raw, unquoted string is
+                // not valid JSON, so deserialization would typically throw a JsonException and the message
+                // would be lost to consumers expecting a successfully deserialized payload.
                 //
-                // Bad (before): blob contained → hello world     ← JsonSerializer chokes on this
+                // Bad (before): blob contained → hello world     ← invalid JSON, JsonSerializer throws
                 //  Good (after): blob contains  → "hello world"  ← valid JSON string
                 //
-                // Bad (before): blob contained → 42     ← JsonSerializer chokes on this
-                //  Good (after): blob contains  → 42    ← already valid JSON for a number (int)
+                //  Good (before/after): blob contains → 42       ← valid JSON number; we still route it
+                //  through SerializeToUtf8Bytes for consistency across simple types.
                 //
                 // Note: numbers ARE valid JSON, but strings without quotes are not. We serialize all
                 // simple types uniformly here so the blob always contains well-formed JSON.
