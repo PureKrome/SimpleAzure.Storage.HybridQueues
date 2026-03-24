@@ -60,7 +60,7 @@ public class SaveUserAsyncTests
         var userId = await service.SaveUserAsync(user);
 
         // Assert.
-        // Add assertions to verify that the user was saved successfully using Shouldly nuget library.
+        // Add assertions to verify that the user was saved successfully using the Shouldly NuGet package.
         userId.ShouldBeGreaterThan(0);
     }
 }
