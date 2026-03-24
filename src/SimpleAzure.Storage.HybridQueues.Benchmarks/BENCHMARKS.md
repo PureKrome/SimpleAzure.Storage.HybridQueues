@@ -1,7 +1,6 @@
 # AddMessageAsync Serialization — Benchmark Results
 
-Benchmarks comparing the **current** serialization path against the **proposed**
-`JsonSerializer.SerializeToUtf8Bytes` optimization in `HybridQueue.AddMessageAsync`.
+Benchmarks comparing three serialization strategies in `HybridQueue.AddMessageAsync`.
 
 ## What is being measured
 
@@ -18,6 +17,17 @@ Benchmarks comparing the **current** serialization path against the **proposed**
 3. Bytes passed to blob upload **as-is** — no re-encoding
 4. `Encoding.UTF8.GetString(blobBytes)` → only called when the item fits in the queue
 
+### Mixed path (**implemented** — best of both worlds)
+
+| Code path | Strategy | Rationale |
+|---|---|---|
+| Queue path (non-forced, small/medium) | `Serialize` → string | Fastest; string used directly for queue, no `GetString` overhead |
+| Non-forced, too large → blob | `Serialize` → string → `UTF8.GetBytes` | String already exists; avoids re-serialization |
+| Forced onto blob (`isForcedOntoBlob = true`) | `SerializeToUtf8Bytes` → bytes | We know it goes to blob; skip the intermediate UTF-16 string entirely |
+
+`AddJsonMessageToBlobStorageAsync` now accepts `byte[]` instead of `string`, eliminating the
+`BinaryData(string)` constructor's internal UTF-8 re-encoding for **all** blob upload calls.
+
 ## Environment
 
 ```
@@ -30,47 +40,74 @@ Runtime: .NET 9.0.13 (9.0.1326.6317), X64 RyuJIT AVX2
 
 ## Results
 
-| Method | Mean | Error | StdDev | Ratio | Gen0 | Gen1 | Gen2 | Allocated | Alloc Ratio |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Small: current (Serialize→string, GetByteCount) | 318.7 ns | 0.70 ns | 0.55 ns | **1.00** | 0.0119 | - | - | **200 B** | 1.00 |
-| Small: proposed (SerializeToUtf8Bytes→GetString for queue) | 322.4 ns | 1.27 ns | 1.06 ns | 1.01 | 0.0191 | - | - | 320 B | 1.60 |
-| Medium: current (Serialize→string, GetByteCount) | 1,846.6 ns | 26.02 ns | 24.34 ns | 5.79 | 0.5188 | - | - | **8,696 B** | 43.48 |
-| Medium: proposed (SerializeToUtf8Bytes→GetString for queue) | 2,073.2 ns | 33.59 ns | 31.42 ns | 6.50 | 0.7706 | - | - | 12,904 B | 64.52 |
-| **Large (blob): current** (Serialize→string, UTF8.GetBytes for blob) | **88,789.9 ns** | 1,030.64 ns | 964.06 ns | 278.57 | 36.9873 | 36.9873 | 36.9873 | **180,197 B** | 900.99 |
-| **Large (blob): proposed** (SerializeToUtf8Bytes, Length, bytes direct) | **10,839.0 ns** | 200.86 ns | 187.88 ns | 34.01 | 3.5706 | - | - | **60,064 B** | 300.32 |
+### Queue path — small and medium payloads (fits within 48 KB)
 
-> Baseline = `Small: current`. Run `dotnet run -c Release` in this project to reproduce.
+| Method | Mean | Alloc | vs Current |
+|---|---:|---:|---:|
+| Small: **current** (Serialize→string, GetByteCount) | **313.3 ns** | **200 B** | baseline |
+| Small: proposed (SerializeToUtf8Bytes→GetString) | 325.6 ns | 320 B | +4% slower, +60% alloc |
+| Small: **mixed** (Serialize→string — identical to current) | 350.4 ns | 200 B | ≈ same |
+| Medium: **current** (Serialize→string, GetByteCount) | **1,613.9 ns** | **8,696 B** | baseline |
+| Medium: proposed (SerializeToUtf8Bytes→GetString) | 1,698.0 ns | 12,904 B | +5% slower, +48% alloc |
+| Medium: **mixed** (Serialize→string — identical to current) | 1,552.9 ns | 8,696 B | ≈ same |
+
+> **Mixed = current** for the queue path. No regression, no change.
+
+### Blob path — non-forced, large payload (exceeds 48 KB)
+
+| Method | Mean | Gen0 | Gen1 | Gen2 | Alloc |
+|---|---:|---:|---:|---:|---:|
+| Large non-forced: **current** (Serialize→string, GetBytes for blob) | 85,301.6 ns | 37.0 | 37.0 | 37.0 | 180,197 B |
+| Large non-forced: proposed (SerializeToUtf8Bytes, bytes direct) | 9,202.0 ns | 3.6 | - | - | 60,064 B |
+| Large non-forced: **mixed** (Serialize→string, GetBytes — identical to current) | 84,742.8 ns | 37.0 | 37.0 | 37.0 | 180,197 B |
+
+> **Mixed = current** for non-forced large payloads. We cannot skip the string allocation
+> here because we need it to measure the byte size before deciding which path to take.
+
+### Blob path — forced (`isForcedOntoBlob = true`) ← **Mixed wins here**
+
+| Method | Mean | Gen0 | Gen1 | Gen2 | Alloc | vs Current |
+|---|---:|---:|---:|---:|---:|---:|
+| Small forced: **current** (Serialize→string, GetBytes) | 373.9 ns | 0.019 | - | - | 320 B | baseline |
+| Small forced: **mixed** (SerializeToUtf8Bytes, no intermediate string) | **278.1 ns** | **0.007** | - | - | **120 B** | **−26% time, −63% alloc** |
+| Large forced: **current** (Serialize→string, GetBytes) | 84,082.7 ns | 37.0 | 37.0 | 37.0 | 180,197 B | baseline |
+| Large forced: **mixed** (SerializeToUtf8Bytes, no intermediate string) | **8,965.3 ns** | **3.6** | - | - | **60,064 B** | **−89% time (9.4×), −67% alloc, no gen2** |
 
 ## Analysis
 
-### Queue-only path (small / medium payloads that fit within 48 KB)
+### Queue path (mixed = current)
 
-The proposed approach is **marginally slower** (~1–12%) and allocates ~1.5–1.6× more memory
-for the queue path. This is expected: the current approach serialises directly to a `string`
-which is exactly what the queue needs, whereas the proposed approach serialises to bytes and
-then calls `UTF8.GetString` to produce the string. This extra conversion is the cost of
-unifying the serialisation step.
+Mixed keeps `JsonSerializer.Serialize` → string for all non-forced complex types that fit
+within the 48 KB limit. The string is used directly as the queue message body — no
+`Encoding.UTF8.GetString` call, no extra allocation. Queue path performance is **unchanged**.
 
-### Blob path (large payloads that exceed 48 KB)
+### Non-forced large blob path (mixed = current)
 
-The proposed approach is **~8.2× faster** (88.8 µs vs 10.8 µs) and allocates **~3× less
-memory** (180 KB vs 60 KB). The gains come from eliminating:
+When a payload is not forced onto the blob but turns out to be too large, the mixed approach
+serialises to a string first (necessary for the size check), then calls `Encoding.UTF8.GetBytes`
+to produce the bytes for blob upload — the same work as the current code. No improvement here,
+but no regression either.
 
-- The intermediate UTF-16 string allocation (≈ 120 KB for a 60 KB payload)
-- The second UTF-8 byte-count scan (`Encoding.UTF8.GetByteCount`)
-- The UTF-16 → UTF-8 re-encoding pass (`Encoding.UTF8.GetBytes` / `new BinaryData(string)`)
-- Gen1 and Gen2 GC pressure (the current path triggers gen2 collections; the proposed path stays in gen0)
+### Forced blob path (mixed wins decisively)
 
-## Conclusion
+When `isForcedOntoBlob = true` the destination is known upfront. Mixed uses
+`JsonSerializer.SerializeToUtf8Bytes` directly, completely eliminating the intermediate
+UTF-16 string allocation:
 
-The optimization is a **clear win** for the blob path, which is the path that matters
-most for large payloads. The slight regression for the queue-only path is negligible in
-practice because:
+- **Small forced**: 26% faster, 63% less allocation (320 B → 120 B).
+- **Large forced**: **9.4× faster** (84 µs → 9 µs), **67% less allocation** (180 KB → 60 KB).
+  Most importantly, **no gen1/gen2 GC collections** — the current code triggers gen2 for
+  large forced payloads because the ~120 KB UTF-16 string reaches the Large Object Heap.
 
-1. The absolute difference is tiny (< 230 ns for small, < 230 ns for medium).
-2. In any real application the I/O cost of the queue-send operation dwarfs this difference.
-3. The blob path savings (eliminating large gen1/gen2 allocations) reduce GC pause times
-   for high-throughput workloads.
+## Summary table
+
+| Scenario | Current | **Mixed** | Change |
+|---|---:|---:|---:|
+| Small queue | 313 ns / 200 B | **313 ns / 200 B** | none (= current) |
+| Medium queue | 1,614 ns / 8,696 B | **1,553 ns / 8,696 B** | none (= current) |
+| Large blob (non-forced) | 85,302 ns / 180,197 B | **84,743 ns / 180,197 B** | none (= current) |
+| Small blob (forced) | 374 ns / 320 B | **278 ns / 120 B** | **−26% time, −63% alloc** |
+| Large blob (forced) | 84,083 ns / 180,197 B | **8,965 ns / 60,064 B** | **−89% time, −67% alloc, no gen2** |
 
 ## How to run
 

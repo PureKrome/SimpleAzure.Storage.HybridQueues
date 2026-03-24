@@ -80,7 +80,7 @@ public sealed class HybridQueue(
         _logger.LogDebug("Adding a message to a Hybrid Queue.");
 
         string message;
-
+        byte[]? blobBytes = null;
 
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
         if (!isForcedOntoBlob &&
@@ -103,13 +103,20 @@ public sealed class HybridQueue(
             if (isForcedOntoBlob)
             {
                 _logger.LogDebug("Is forced onto blob == true.");
+
+                // Serialize directly to UTF-8 bytes: we know the content is going to blob storage
+                // so there is no need to allocate an intermediate UTF-16 string.
+                blobBytes = JsonSerializer.SerializeToUtf8Bytes(item);
+                message = string.Empty;
             }
             else
             {
                 _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
-            }
 
-            message = JsonSerializer.Serialize(item);
+                // Serialize to a string: optimal for the common queue path where the message fits
+                // within 48 KB and is sent directly without a UTF-8 re-encoding step.
+                message = JsonSerializer.Serialize(item);
+            }
         }
 
         // Is this item/content _too big_ for a normal queue-message?
@@ -141,11 +148,23 @@ public sealed class HybridQueue(
                 // simple types uniformly here so the blob always contains well-formed JSON.
                 if (item is string || typeof(T).IsASimpleType())
                 {
-                    message = JsonSerializer.Serialize(item);
+                    // Simple types need JSON-encoding for blob (raw value is not valid JSON for strings).
+                    blobBytes = JsonSerializer.SerializeToUtf8Bytes(item);
+                }
+                else
+                {
+                    // Complex type: we already have the JSON as a UTF-16 string. Convert it to UTF-8
+                    // bytes for blob upload, avoiding a full re-serialization pass.
+                    blobBytes = Encoding.UTF8.GetBytes(message);
                 }
             }
 
-            message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
+            // blobBytes is guaranteed non-null here:
+            //   • isForcedOntoBlob = true  → set via JsonSerializer.SerializeToUtf8Bytes in the else block above.
+            //   • isForcedOntoBlob = false → set in the if (!isForcedOntoBlob) block just above (simple types
+            //     via SerializeToUtf8Bytes; complex types via Encoding.UTF8.GetBytes).
+            System.Diagnostics.Debug.Assert(blobBytes is not null, "blobBytes must be assigned before reaching the blob upload call.");
+            message = await AddJsonMessageToBlobStorageAsync(blobBytes, cancellationToken).ConfigureAwait(false);
         }
 
         try
@@ -326,7 +345,7 @@ public sealed class HybridQueue(
         }
     }
 
-    private async Task<string> AddJsonMessageToBlobStorageAsync(string jsonMessage, int messageSize, CancellationToken cancellationToken)
+    private async Task<string> AddJsonMessageToBlobStorageAsync(byte[] jsonBytes, CancellationToken cancellationToken)
     {
         // Yes - yes it is. Too big.
         // So lets store the content in Blob.
@@ -334,7 +353,7 @@ public sealed class HybridQueue(
         // Then store the BlobId GUID in the queue message.
 
         var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
-        var content = new BinaryData(jsonMessage);
+        var content = new BinaryData(jsonBytes);
 
         var blobClient = _blobContainerClient.GetBlobClient(blobId);
         await blobClient
