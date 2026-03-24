@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - '.editorconfig'
-      - 'ReadMe.md'
+      - 'README.md'
       - 'ChangeLog.md'
       - '.github/workflows/PullRequest.yml'
       - '.github/workflows/Release.yml'
