@@ -40,3 +40,4 @@ App_Data/
 .vs
 *.orig
 .codecoverage/
+BenchmarkDotNet.Artifacts/

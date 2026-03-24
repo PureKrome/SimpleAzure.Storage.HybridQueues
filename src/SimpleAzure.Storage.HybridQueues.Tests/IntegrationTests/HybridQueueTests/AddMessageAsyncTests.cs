@@ -86,4 +86,38 @@ public class AddMessageAsyncTests : CustomAzuriteTestContainer
         retrievedMessage.Content.ShouldNotBeNull();
         retrievedMessage.Content.Content.ShouldBe(message.Content);
     }
+
+    [Fact]
+    public async Task AddMessageAsync_GivenALargeSimpleString_ShouldAddTheMessageToABlobAndThenAGuidToTheQueue()
+    {
+        // Arrange.
+        var cancellationToken = CancellationToken.None;
+        var message = new string('x', 49152 + 1); // Exceeds the 48KB Base64 queue limit.
+
+        // Act.
+        await HybridQueue.AddMessageAsync(message, cancellationToken);
+
+        // Assert.
+        var retrievedMessage = await HybridQueue.GetMessageAsync<string>(cancellationToken);
+        retrievedMessage.ShouldNotBeNull();
+        retrievedMessage.BlobId.ShouldNotBeNull();
+        retrievedMessage.Content.ShouldBe(message);
+    }
+
+    [Fact]
+    public async Task AddMessageAsync_GivenASimpleIntForcedOntoBlob_ShouldAddTheMessageToTheBlobAndQueue()
+    {
+        // Arrange.
+        var cancellationToken = CancellationToken.None;
+        var message = 42;
+
+        // Act.
+        await HybridQueue.AddMessageAsync(message, null, true, cancellationToken);
+
+        // Assert.
+        var retrievedMessage = await HybridQueue.GetMessageAsync<int>(cancellationToken);
+        retrievedMessage.ShouldNotBeNull();
+        retrievedMessage.BlobId.ShouldNotBeNull();
+        retrievedMessage.Content.ShouldBe(message);
+    }
 }

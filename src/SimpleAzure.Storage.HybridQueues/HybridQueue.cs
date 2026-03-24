@@ -42,10 +42,9 @@ public sealed class HybridQueue(
             {
                 _logger.LogInformation("❌ Missing Hybrid storage container - creating a new one.");
             }
-        else
+            else
             {
                 _logger.LogDebug("✅ Hybrid storage container already exists.");
-                
             }
         }
 
@@ -81,11 +80,10 @@ public sealed class HybridQueue(
         _logger.LogDebug("Adding a message to a Hybrid Queue.");
 
         string message;
-
+        byte[]? blobBytes = null;
 
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
-        if (!isForcedOntoBlob &&
-            item is string stringItem)
+        if (!isForcedOntoBlob && item is string stringItem)
         {
             _logger.LogDebug("Item is a SimpleType: string.");
             message = stringItem;
@@ -104,13 +102,20 @@ public sealed class HybridQueue(
             if (isForcedOntoBlob)
             {
                 _logger.LogDebug("Is forced onto blob == true.");
+
+                // Serialize directly to UTF-8 bytes: we know the content is going to blob storage
+                // so there is no need to allocate an intermediate UTF-16 string.
+                blobBytes = JsonSerializer.SerializeToUtf8Bytes(item);
+                message = string.Empty;
             }
             else
             {
                 _logger.LogDebug("Item is a ComplexType: {complexType}", item.GetType().ToString());
-            }
 
-            message = JsonSerializer.Serialize(item);
+                // Serialize to a string: optimal for the common queue path where the message fits
+                // within 48 KB and is sent directly without a UTF-8 re-encoding step.
+                message = JsonSerializer.Serialize(item);
+            }
         }
 
         // Is this item/content _too big_ for a normal queue-message?
@@ -125,9 +130,45 @@ public sealed class HybridQueue(
             if (!isForcedOntoBlob)
             {
                _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize:N0} bytes", messageSize);
+
+                // Simple types (string, int, decimal, …) were prepared above as raw, unquoted strings
+                // because that is the correct format for direct queue storage (e.g. message = "hello world"
+                // or message = "42"). However, blob storage is always read back via
+                // JsonSerializer.DeserializeAsync<T>, which requires valid JSON. A raw, unquoted string is
+                // not valid JSON, so deserialization would typically throw a JsonException and the message
+                // would be lost to consumers expecting a successfully deserialized payload.
+                //
+                // Bad (before): blob contained → hello world     ← invalid JSON, JsonSerializer throws
+                //  Good (after): blob contains  → "hello world"  ← valid JSON string
+                //
+                //  Good (before/after): blob contains → 42       ← valid JSON number; we still route it
+                //  through SerializeToUtf8Bytes for consistency across simple types.
+                //
+                // Note: numbers ARE valid JSON, but strings without quotes are not. We serialize all
+                // simple types uniformly here so the blob always contains well-formed JSON.
+                if (item is string || typeof(T).IsASimpleType())
+                {
+                    // Simple types need JSON-encoding for blob (raw value is not valid JSON for strings).
+                    blobBytes = JsonSerializer.SerializeToUtf8Bytes(item);
+                }
+                else
+                {
+                    // Complex type: we already have the JSON as a UTF-16 string. Convert it to UTF-8
+                    // bytes for blob upload, avoiding a full re-serialization pass.
+                    blobBytes = Encoding.UTF8.GetBytes(message);
+                }
             }
 
-            message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
+            // blobBytes is guaranteed non-null here:
+            //   • isForcedOntoBlob = true  → set via JsonSerializer.SerializeToUtf8Bytes in the else block above.
+            //   • isForcedOntoBlob = false → set in the if (!isForcedOntoBlob) block just above (simple types
+            //     via SerializeToUtf8Bytes; complex types via Encoding.UTF8.GetBytes).
+            if (blobBytes is null)
+            {
+                throw new InvalidOperationException($"{nameof(blobBytes)} must be assigned before reaching the blob upload call.");
+            }
+
+            message = await AddJsonMessageToBlobStorageAsync(blobBytes, cancellationToken).ConfigureAwait(false);
         }
 
         try
@@ -175,7 +216,7 @@ public sealed class HybridQueue(
     {
         using var _ = _logger.BeginCustomScope(
             (nameof(hybridMessage.MessageId), hybridMessage.MessageId),
-            (nameof(hybridMessage.PopeReceipt), hybridMessage.PopeReceipt),
+            (nameof(hybridMessage.PopReceipt), hybridMessage.PopReceipt),
             (nameof(hybridMessage.BlobId), hybridMessage.BlobId),
             ("queueName", _queueClient.Name));
 
@@ -195,7 +236,7 @@ public sealed class HybridQueue(
         }
 
         var queueResponse = await _queueClient
-            .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken)
+            .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopReceipt, cancellationToken)
             .ConfigureAwait(false);
 
         _logger.LogDebug("Deleted a message from the queue.");
@@ -282,7 +323,7 @@ public sealed class HybridQueue(
         // Blob Storage: N/A
         else if (typeof(T).IsASimpleType())
         {
-            _logger.LogDebug("Retrieving item: which is a simle type and not a guid/not in Blob Storage.");
+            _logger.LogDebug("Retrieving item: which is a simple type and not a guid/not in Blob Storage.");
 
             // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
@@ -308,7 +349,7 @@ public sealed class HybridQueue(
         }
     }
 
-    private async Task<string> AddJsonMessageToBlobStorageAsync(string jsonMessage, int messageSize, CancellationToken cancellationToken)
+    private async Task<string> AddJsonMessageToBlobStorageAsync(byte[] jsonBytes, CancellationToken cancellationToken)
     {
         // Yes - yes it is. Too big.
         // So lets store the content in Blob.
@@ -316,7 +357,7 @@ public sealed class HybridQueue(
         // Then store the BlobId GUID in the queue message.
 
         var blobId = Guid.NewGuid().ToString(); // Unique Name/Identifier of this blob item.
-        var content = new BinaryData(jsonMessage);
+        var content = new BinaryData(jsonBytes);
 
         var blobClient = _blobContainerClient.GetBlobClient(blobId);
         await blobClient
