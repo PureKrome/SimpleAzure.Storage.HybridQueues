@@ -126,8 +126,20 @@ public sealed class HybridQueue(
             {
                _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize:N0} bytes", messageSize);
 
-                // Simple types were serialized as raw strings for queue use. Re-serialize as JSON for blob storage
-                // so that JsonSerializer.DeserializeAsync<T> can correctly read the value back.
+                // Simple types (string, int, decimal, …) were prepared above as raw, unquoted strings
+                // because that is the correct format for direct queue storage (e.g. message = "hello world"
+                // or message = "42"). However, blob storage is always read back via
+                // JsonSerializer.DeserializeAsync<T>, which requires valid JSON. A raw value is not valid
+                // JSON, so deserialization would throw or silently return null, losing the message.
+                //
+                // Bad (before): blob contained → hello world     ← JsonSerializer chokes on this
+                //  Good (after): blob contains  → "hello world"  ← valid JSON string
+                //
+                // Bad (before): blob contained → 42     ← JsonSerializer chokes on this
+                //  Good (after): blob contains  → 42    ← already valid JSON for a number (int)
+                //
+                // Note: numbers ARE valid JSON, but strings without quotes are not. We serialize all
+                // simple types uniformly here so the blob always contains well-formed JSON.
                 if (item is string || typeof(T).IsASimpleType())
                 {
                     message = JsonSerializer.Serialize(item);
