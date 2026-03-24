@@ -39,9 +39,9 @@ public class CustomAzuriteTestContainer : IAsyncLifetime
 
     protected FakeLogger<HybridQueue> Logger { get; } = new FakeLogger<HybridQueue>();
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        await _azuriteContainer.DisposeAsync();
+        return _azuriteContainer.DisposeAsync();
     }
 
     public async ValueTask InitializeAsync()

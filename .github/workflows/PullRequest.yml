@@ -22,7 +22,7 @@ jobs:
 
       - run: dotnet build --configuration Debug /p:ContinuousIntegrationBuild=true
 
-      - run: dotnet run --project src/SimpleAzure.Storage.HybridQueues.Tests/SimpleAzure.Storage.HybridQueues.Tests.csproj --configuration Debug --no-build -- --coverage --coverage-output-format cobertura --coverage-output ./.codecoverage/coverage.cobertura.xml
+      - run: dotnet run --project src/SimpleAzure.Storage.HybridQueues.Tests/SimpleAzure.Storage.HybridQueues.Tests.csproj --configuration Debug --no-build -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory ./.codecoverage
 
       - name: Code coverage
         uses: codecov/codecov-action@v5
