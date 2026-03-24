@@ -14,7 +14,7 @@ description: Write unit tests following team conventions for naming, structure, 
 
 ## Conventions
 - Write unit tests for all public APIs
-- Use xUnit as the testing framework and specifically xunit v3 using the latest Microsft Test Platform version
+- Use xUnit as the testing framework and specifically xunit v3 using the latest Microsoft Test Platform version
 - Follow AAA pattern (Arrange, Act, Assert)
 - Always comment in a test the "Arrange.", "Act.", and "Assert." sections
 - Use meaningful test names (e.g., `AddMessageAsync_WithLargeContent_StoresInBlob`)
