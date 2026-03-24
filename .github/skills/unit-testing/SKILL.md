@@ -20,7 +20,7 @@ description: Write unit tests following team conventions for naming, structure, 
 - Use meaningful test names (e.g., `AddMessageAsync_WithLargeContent_StoresInBlob`)
 - Mock external dependencies with Moq
 - Aim for high code coverage on business logic
-- Each method being tested should have its own class so xUnit can run tests in parallel
+- Create a dedicated test class for each method under test, so that xUnit can run tests in parallel
 - Each method being tested should have at least one test for success and one for failure
 
 ## Test Structure
