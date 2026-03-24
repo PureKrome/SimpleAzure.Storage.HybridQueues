@@ -125,6 +125,13 @@ public sealed class HybridQueue(
             if (!isForcedOntoBlob)
             {
                _logger.LogDebug("Item is too large to fit into a queue. Storing into a blob then a queue. Item size: {itemSize:N0} bytes", messageSize);
+
+                // Simple types were serialized as raw strings for queue use. Re-serialize as JSON for blob storage
+                // so that JsonSerializer.DeserializeAsync<T> can correctly read the value back.
+                if (item is string || typeof(T).IsASimpleType())
+                {
+                    message = JsonSerializer.Serialize(item);
+                }
             }
 
             message = await AddJsonMessageToBlobStorageAsync(message, messageSize, cancellationToken).ConfigureAwait(false);
@@ -175,7 +182,7 @@ public sealed class HybridQueue(
     {
         using var _ = _logger.BeginCustomScope(
             (nameof(hybridMessage.MessageId), hybridMessage.MessageId),
-            (nameof(hybridMessage.PopeReceipt), hybridMessage.PopeReceipt),
+            (nameof(hybridMessage.PopReceipt), hybridMessage.PopReceipt),
             (nameof(hybridMessage.BlobId), hybridMessage.BlobId),
             ("queueName", _queueClient.Name));
 
@@ -195,7 +202,7 @@ public sealed class HybridQueue(
         }
 
         var queueResponse = await _queueClient
-            .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopeReceipt, cancellationToken)
+            .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopReceipt, cancellationToken)
             .ConfigureAwait(false);
 
         _logger.LogDebug("Deleted a message from the queue.");
