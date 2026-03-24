@@ -25,13 +25,13 @@ description: Write unit tests following team conventions for naming, structure, 
 
 ## Test Structure
 
-- Each method being tested should have its own test class named `<namespace>/ClassNameTests/MethodNameTests`
+- Each method being tested should have its own test class placed under `UnitTests|IntegrationTests/<SutName>Tests/<MethodName>Tests`, with the corresponding namespace `<RootNamespace>.Tests.UnitTests|IntegrationTests.<SutName>Tests` and class name `<MethodName>Tests`
 - Methods are named using the pattern: `MethodUnderTesting_GivenSomeCondition_ShouldSomeExpectedResult` 
 
 ```csharp
 // Example class and method to be tested
 
-namespace MyProject.Services.UserService.SaveUserAsyncTests;
+namespace MyProject.Services;
 
 public class UserService
 {
@@ -44,8 +44,9 @@ public class UserService
 .....
 
 // Example test class and method following the conventions
+// Folder: UnitTests/UserServiceTests/SaveUserAsyncTests.cs
 
-namespace MyProject.ServiceTests.UserServiceTests;
+namespace MyProject.Tests.UnitTests.UserServiceTests;
 
 public class SaveUserAsyncTests
 {
