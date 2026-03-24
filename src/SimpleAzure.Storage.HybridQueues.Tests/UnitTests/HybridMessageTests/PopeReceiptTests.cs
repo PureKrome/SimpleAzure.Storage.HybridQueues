@@ -1,5 +1,10 @@
 namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.UnitTests.HybridMessageTests;
 
+// This test class focuses on verifying the behavior of the PopeReceipt property, **which is marked as obsolete**
+// and should mirror the value of PopReceipt. The tests ensure that both properties remain consistent and that
+// modifying one updates the other as expected.
+#pragma warning disable CS0618 // Type or member is obsolete
+
 public class PopeReceiptTests
 {
     [Fact]
@@ -14,6 +19,7 @@ public class PopeReceiptTests
 
         // Act.
         var retrievedValue = message.PopeReceipt;
+
 
         // Assert.
         retrievedValue.ShouldBe(popReceipt);
@@ -104,3 +110,5 @@ public class PopeReceiptTests
         message.PopReceipt.ShouldBe(receiptValue);
     }
 }
+
+#pragma warning restore CS0618 // Type or member is obsolete
