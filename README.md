@@ -14,7 +14,7 @@
     </a>
     <!-- NuGet -->
     <a href="https://www.nuget.org/packages/WorldDomination.SimpleAzure.Storage.HybridQueues/">
-    <img src="https://buildstats.info/nuget/WorldDomination.SimpleAzure.Storage.HybridQueues" alt="NuGet" />
+    <img src="https://img.shields.io/nuget/v/WorldDomination.SimpleAzure.Storage.HybridQueues" alt="NuGet" />
     </a>
 </div>
 
