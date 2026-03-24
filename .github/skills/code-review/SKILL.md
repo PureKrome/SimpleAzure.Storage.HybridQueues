@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review code changes in dotnet/runtime for correctness, performance, and consistency with project conventions. Use when reviewing PRs or code changes.
+description: Review code changes in SimpleAzure.Storage.HybridQueues for correctness, performance, and consistency with project conventions. Use when reviewing PRs or code changes.
 ---
 
 # Code Review
