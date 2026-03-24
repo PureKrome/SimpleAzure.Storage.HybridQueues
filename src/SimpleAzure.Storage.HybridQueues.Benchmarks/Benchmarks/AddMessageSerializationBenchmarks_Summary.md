@@ -75,15 +75,95 @@ await hybridQueue.AddMessageAsync(
 
 ### Why mixed cannot improve the non-forced large path
 
-In path 1, the library does not know whether the payload will exceed 48 KB until after it has
-serialized it. The string is produced first — because the string is also what gets sent to the
-queue when the payload is small. By the time the library discovers the payload is too large, the
-UTF-16 string already exists in memory. Converting that string to UTF-8 bytes (one encoding pass)
-is strictly cheaper than re-serializing from scratch (a full JSON traversal + encoding pass), so
-mixed keeps `Encoding.UTF8.GetBytes(string)` for this case — identical to the current code.
+#### Can't we just check the size of the value before serializing?
 
-Only path 2 (forced) allows skipping the intermediate string, because the destination is known
-upfront and the string is never needed.
+The short answer is: **no**, because the caller hands the library a typed .NET object (`T item`),
+not a string. A .NET object has no concept of its own serialized UTF-8 byte count. There is no
+property to read, no shortcut to take. The only way to know whether the payload will fit in the
+48 KB queue limit is to produce its JSON representation first and then measure it.
+
+**What `T item` actually is when the method is called:**
+
+```csharp
+// The caller passes an in-memory .NET object — not a string, not bytes.
+public record OrderSummary(string CustomerId, List<LineItem> Items, decimal Total);
+
+var order = new OrderSummary("CUST-001", lineItems, 999.99m);
+
+await hybridQueue.AddMessageAsync(
+    item: order,          // ← a .NET object; its serialized size is unknown
+    initialVisibilityDelay: null,
+    isForcedOntoBlob: false,
+    cancellationToken: ct);
+```
+
+`order` is a live heap object. Its in-memory size (measured by something like
+`GC.GetTotalMemory`) tells you nothing about how many UTF-8 bytes it will occupy as JSON:
+
+| Value | In-memory size (approx.) | UTF-8 JSON byte count |
+|---|---:|---:|
+| `new User("Alice", 25)` | ~120 B (object header, field pointers, string object) | 24 B (`{"Name":"Alice","Age":25}`) |
+| `new OrderSummary(...)` with 500 line items | ~250 KB (500 `LineItem` objects on the heap) | ~62 KB (flat JSON array) |
+| `new string('A', 50_000)` (a simple `string` item) | 100 KB (50,000 × 2 bytes, UTF-16) | 50 KB (50,000 × 1 byte, ASCII in UTF-8) |
+| `new string('€', 50_000)` (a simple `string` item) | 100 KB (50,000 × 2 bytes, UTF-16) | 150 KB (50,000 × 3 bytes, `€` is 3-byte UTF-8) |
+
+The last two rows show that even for a plain `string` the `.Length` property is the wrong measure
+— it counts UTF-16 characters, not UTF-8 bytes. An all-ASCII string of 50,000 chars is 50 KB in
+UTF-8 and therefore overflows the 48 KB queue limit; an all-`€` string of the same `.Length` is
+150 KB in UTF-8 and overflows by even more. Neither decision can be made correctly without
+measuring the UTF-8 byte count.
+
+#### Is the value a string in the non-forced complex-type case?
+
+No. When `item` is a complex type (a POCO, a record, etc.) and `isForcedOntoBlob = false`, the
+value is a .NET object. `string` is handled as a special case on its own branch in the code:
+
+```csharp
+// Branch 1 — item is already a string: use it directly (no serialization needed).
+if (!isForcedOntoBlob && item is string stringItem)
+{
+    message = stringItem;   // ← the string IS the queue message; byte-count it directly
+}
+// Branch 2 — item is a simple type (int, bool, decimal, …): call .ToString().
+else if (!isForcedOntoBlob && typeof(T).IsASimpleType())
+{
+    message = item.ToString().AssumeNotNull();   // ← "42", "true", "3.14", etc.
+}
+// Branch 3 — complex type, non-forced: MUST serialize to get the queue message content
+//            AND to know the byte count.
+else if (!isForcedOntoBlob)
+{
+    message = JsonSerializer.Serialize(item);   // ← only now do we have a measurable string
+}
+```
+
+For complex types (branch 3), `JsonSerializer.Serialize` serves **two purposes at once**:
+1. It produces the queue message body (the JSON string that goes straight to the queue if the payload is small).
+2. It produces something whose byte count can be measured.
+
+There is no cheaper way to get either. Skipping serialization would mean having nothing to put in the queue and nothing to measure.
+
+#### Why can't we serialize to UTF-8 bytes first and check `bytes.Length`?
+
+That is exactly what the **proposed path** in the benchmarks does: `SerializeToUtf8Bytes` →
+`bytes.Length`. It is strictly faster for the blob case. However, when the payload turns out to be
+**small** (the common case) the bytes then have to be converted back to a UTF-16 string via
+`Encoding.UTF8.GetString(bytes)` for the queue call — which adds an extra allocation and decoding
+pass that the mixed strategy avoids by keeping `Serialize` → string for the non-forced path.
+
+The mixed strategy therefore makes the most profitable choice per destination:
+
+| Known destination | Best serialization strategy |
+|---|---|
+| Unknown (non-forced) | `Serialize` → string; measure with `GetByteCount`; string goes to queue if small, or `GetBytes` for blob if large |
+| Always blob (forced) | `SerializeToUtf8Bytes` → bytes; skip the UTF-16 string entirely |
+
+#### Summary
+
+In the non-forced case the library **must** serialize before it can decide. The serialized string
+is not a throwaway intermediate — it is the exact bytes the queue will receive if the payload
+fits. Once that string exists, converting it to UTF-8 bytes (`GetBytes`) costs one encoding pass
+and is always cheaper than discarding it and re-serializing from scratch.
 
 ---
 
