@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Benchmarks target net9.0 because BenchmarkDotNet 0.14.0 supports up to .NET 9. -->
-    <TargetFramework>net9.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
