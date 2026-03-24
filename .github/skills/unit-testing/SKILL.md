@@ -58,5 +58,5 @@ public class SaveUserAsyncTests
 ```
 
 ## Running tests
-- xUnit v3 using the latest Microsoft Test Platform runs tests in the CLI via 'dotnet run <path-to-test-project>'.
-- when running tests, just run the tests added/modified, not the entire suit
+- xUnit v3 using the latest Microsoft Test Platform runs tests in the CLI via `dotnet run <path-to-test-project>`.
+- when running tests, just run the tests added/modified, not the entire suite
