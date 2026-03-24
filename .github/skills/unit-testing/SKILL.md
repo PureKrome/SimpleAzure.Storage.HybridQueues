@@ -50,9 +50,18 @@ namespace MyProject.ServiceTests.UserServiceTests;
 public class SaveUserAsyncTests
 {
     [Fact]
-    public void SaveUserAsync_GivenAValidUser_ShouldSaveSuccessfully()
+    public async Task SaveUserAsync_GivenAValidUser_ShouldSaveSuccessfully()
     {
+        // Arrange.
+        var service = new UserService();
+        var user = new User();
 
+        // Act.
+        var userId = await service.SaveUserAsync(user);
+
+        // Assert.
+        // Add assertions to verify that the user was saved successfully using Shouldly nuget library.
+        userId.ShouldBeGreaterThan(0);
     }
 }
 ```
