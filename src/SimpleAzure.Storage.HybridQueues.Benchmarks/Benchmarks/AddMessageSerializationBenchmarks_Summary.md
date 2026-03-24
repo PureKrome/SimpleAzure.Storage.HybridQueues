@@ -2,6 +2,91 @@
 
 Benchmarks comparing three serialization strategies in `HybridQueue.AddMessageAsync`.
 
+## Understanding the two blob code paths
+
+`AddMessageAsync` has one parameter that controls how the blob/queue decision is made:
+`isForcedOntoBlob`. Its value determines which of the two paths below is taken.
+
+---
+
+### Path 1 — "Non-forced" (`isForcedOntoBlob: false`, the default)
+
+The caller does **not** request blob storage. The library serialises the item to JSON, measures
+the resulting byte count, and only routes to blob when the size exceeds the 48 KB queue limit.
+The destination is unknown at the start of the method.
+
+```csharp
+// Caller does not care about blob; library decides automatically based on size.
+await hybridQueue.AddMessageAsync(
+    item: myOrder,
+    initialVisibilityDelay: null,
+    isForcedOntoBlob: false,   // ← library decides
+    cancellationToken: ct);
+```
+
+What the library does internally:
+
+1. `JsonSerializer.Serialize(myOrder)` → UTF-16 string  
+2. `Encoding.UTF8.GetByteCount(string)` → measure size  
+3. Size ≤ 48 KB? → send the string straight to the queue (**queue path**)  
+4. Size > 48 KB? → re-encode string to UTF-8 bytes, upload to blob, put GUID in queue (**non-forced large blob path**)
+
+**Real-world examples of non-forced payloads that end up on blob:**
+
+| Scenario | Why it overflows 48 KB |
+|---|---|
+| `OrderSummary` with 500+ line items | Each `LineItem` has SKU, description, quantity, price, tax fields |
+| `DiagnosticReport` with a full exception chain | Stack trace strings, inner exceptions, context dictionaries |
+| `EventBatch` containing 200+ telemetry events | Timestamp, name, properties, measurements per event |
+| `UserProfile` with binary-encoded avatar | Base64-encoded profile picture stored in a string field |
+| `SearchResult` returning 100 documents | Each document has title, url, snippet, metadata |
+
+The caller passes `isForcedOntoBlob: false` for all of these — the overflow is discovered at
+runtime when the serialized payload turns out to be bigger than 48 KB.
+
+---
+
+### Path 2 — "Forced" (`isForcedOntoBlob: true`)
+
+The caller **explicitly** requests blob storage, regardless of payload size. The library skips
+the size check entirely and goes straight to blob. The destination is known at the start of the
+method, which is why the mixed strategy can apply `SerializeToUtf8Bytes` here for a 9.4× speedup.
+
+```csharp
+// Caller explicitly requests blob, size does not matter.
+await hybridQueue.AddMessageAsync(
+    item: myPayload,
+    initialVisibilityDelay: null,
+    isForcedOntoBlob: true,   // ← always blob
+    cancellationToken: ct);
+```
+
+**Real-world examples where callers use `isForcedOntoBlob: true`:**
+
+| Scenario | Why forced is preferred |
+|---|---|
+| Archival/audit messages | Always want a durable, inspectable blob; size is unpredictable |
+| Fan-out / message bus patterns | All consumers retrieve from blob; queue is only a notification |
+| Payloads that are always large | Large report, export file reference — overhead of size-check is pointless |
+| Guaranteed consistency | System requirement: every message stored in blob for compliance |
+| Unknown / user-supplied content | Content size is not known at call time; safer to always use blob |
+
+---
+
+### Why mixed cannot improve the non-forced large path
+
+In path 1, the library does not know whether the payload will exceed 48 KB until after it has
+serialized it. The string is produced first — because the string is also what gets sent to the
+queue when the payload is small. By the time the library discovers the payload is too large, the
+UTF-16 string already exists in memory. Converting that string to UTF-8 bytes (one encoding pass)
+is strictly cheaper than re-serializing from scratch (a full JSON traversal + encoding pass), so
+mixed keeps `Encoding.UTF8.GetBytes(string)` for this case — identical to the current code.
+
+Only path 2 (forced) allows skipping the intermediate string, because the destination is known
+upfront and the string is never needed.
+
+---
+
 ## What is being measured
 
 ### Current path (complex types)
