@@ -99,7 +99,7 @@ and transparently handles retrieval and cleanup so consumers can work with queue
 - ❌ Don't use regions to hide code
 - ❌ Don't use dynamic types
 - ❌ Don't use static classes for stateful operations
-- ❌ Don't use Automapper or MediatR
+- ❌ Don't use AutoMapper or MediatR
 
 ## Code Review Checklist
 
