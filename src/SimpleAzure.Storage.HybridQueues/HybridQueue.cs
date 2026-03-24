@@ -42,10 +42,9 @@ public sealed class HybridQueue(
             {
                 _logger.LogInformation("❌ Missing Hybrid storage container - creating a new one.");
             }
-        else
+            else
             {
                 _logger.LogDebug("✅ Hybrid storage container already exists.");
-                
             }
         }
 
@@ -301,7 +300,7 @@ public sealed class HybridQueue(
         // Blob Storage: N/A
         else if (typeof(T).IsASimpleType())
         {
-            _logger.LogDebug("Retrieving item: which is a simle type and not a guid/not in Blob Storage.");
+            _logger.LogDebug("Retrieving item: which is a simple type and not a guid/not in Blob Storage.");
 
             // Do we have a GUID? Guids are used to represent the blobId.
             var value = (T)Convert.ChangeType(message, typeof(T));
