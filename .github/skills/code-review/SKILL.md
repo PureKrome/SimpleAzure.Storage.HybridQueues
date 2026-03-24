@@ -5,7 +5,7 @@ description: Review code changes in SimpleAzure.Storage.HybridQueues for correct
 
 # Code Review
 
-**Reviewer mindset:** Be polite but very skeptical. Your job is to help speed the review process for maintainers, which includes not only finding problems the PR author may have missed but also questioning the value of the PR in its entirety. Treat the PR description and linked issues as claims to verify, not facts to accept. Question the stated direction, probe edge cases, and don't hesitate to flag concerns even when unsure.
+**Reviewer mindset:** Be polite but very skeptical. Your job is to help speed the review process for maintainers, which includes not only finding problems the PR author may have missed but also questioning the value of the PR in its entirety. Treat the PR description and linked issues as claims to verify, not facts to accept. Question the stated direction, probe edge cases, and when something seems off, investigate until you're reasonably confident before raising it — or clearly label it as a low-confidence question rather than a defect.
 
 ## When to Use This Skill
 
