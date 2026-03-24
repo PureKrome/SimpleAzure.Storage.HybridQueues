@@ -6,13 +6,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ## [Unreleased]
 - Nothing yet.
 
+## [3.0.0] - 2026-03-25
+## Changed
+- Perf: Mixed serialization strategy: Serialize → string for queue path, SerializeToUtf8Bytes for forced-blob path
+- Nuget packages updated to latest versions
+
+## Deprecated
+- HybridMessage property PopeReceipt → PopReceipt
+
+## [2.1.0] - 2026-03-16
+## Changed
+- Nuget packages updated to latest versions
+
 ## [2.0.0] - 2025-11-17
-### Added
+## Changed
 - Upgraded to .NET 10
 - Nuget packages updated to latest versions
 
 ## [1.5.0] - 2025-07-24
-### Added
+## Changed
 - Nuget packages updated to latest versions
 
 ## [1.4.0] - 2024-01-13
@@ -20,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Reduced the max size of a Queue Message from 64KB (the queue default value) down to 48KB because that's the max size for Base64 and we don't know what type of Queue's Encoding has been pre-defined.
 
 ## [1.3.0] - 2023-12-29
-### Updated
+### Changed
 - Fixed handling when a POCO is just too large and wasn't correctly getting stored to the blob
   by dropping the max message payload size down to 48KB for Base64 encoded messages.
 
@@ -35,7 +47,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ## [1.1.0] - 2023-12-19
 ### Added
 - Expose ParseMessageAsync as a public method
-### Updated
+### Changed
 - 🚮 Remove hardcoded version from NuGet package
 
 ## [1.0.0] - 2023-12-07
