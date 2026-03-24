@@ -83,8 +83,7 @@ public sealed class HybridQueue(
         byte[]? blobBytes = null;
 
         // Don't waste effort serializing a string. It's already in a format that's ready to go.
-        if (!isForcedOntoBlob &&
-            item is string stringItem)
+        if (!isForcedOntoBlob && item is string stringItem)
         {
             _logger.LogDebug("Item is a SimpleType: string.");
             message = stringItem;
@@ -164,7 +163,11 @@ public sealed class HybridQueue(
             //   • isForcedOntoBlob = true  → set via JsonSerializer.SerializeToUtf8Bytes in the else block above.
             //   • isForcedOntoBlob = false → set in the if (!isForcedOntoBlob) block just above (simple types
             //     via SerializeToUtf8Bytes; complex types via Encoding.UTF8.GetBytes).
-            System.Diagnostics.Debug.Assert(blobBytes is not null, "blobBytes must be assigned before reaching the blob upload call.");
+            if (blobBytes is null)
+            {
+                throw new InvalidOperationException($"{nameof(blobBytes)} must be assigned before reaching the blob upload call.");
+            }
+
             message = await AddJsonMessageToBlobStorageAsync(blobBytes, cancellationToken).ConfigureAwait(false);
         }
 
