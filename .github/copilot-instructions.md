@@ -43,7 +43,7 @@ and transparently handles retrieval and cleanup so consumers can work with queue
 - Include correlation IDs where applicable
 
 ### Testing
-- Refer to the skills/unit-testing/SKILLS.md for testing guidelines
+- Refer to the .github/skills/unit-testing/SKILL.md for testing guidelines
 
 ### Documentation
 - Use XML documentation comments for public APIs
