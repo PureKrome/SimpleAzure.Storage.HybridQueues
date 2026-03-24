@@ -17,7 +17,7 @@ description: Write unit tests following team conventions for naming, structure, 
 - Use xUnit as the testing framework and specifically xunit v3 using the latest Microsoft Test Platform version
 - Follow AAA pattern (Arrange, Act, Assert)
 - Always comment in a test the "Arrange.", "Act.", and "Assert." sections
-- Use meaningful test names (e.g., `AddMessageAsync_WithLargeContent_StoresInBlob`)
+- Use meaningful test names (e.g., `AddMessageAsync_GivenSomeLargeContent_ShouldStoreInBlob`)
 - Mock external dependencies with Moq
 - Aim for high code coverage on business logic
 - Each method being tested should have its own class so xUnit can run tests in parallel
@@ -35,7 +35,7 @@ namespace MyProject.Services.UserService.SaveUserAsyncTests;
 
 public class UserService
 {
-    public async Task SaveUserAsync(User user)
+    public async Task<int> SaveUserAsync(User user)
     {
         // Implementation goes here
     }
@@ -67,5 +67,5 @@ public class SaveUserAsyncTests
 ```
 
 ## Running tests
-- xUnit v3 using the latest Microsoft Test Platform runs tests in the CLI via `dotnet run <path-to-test-project>`.
+- xUnit v3 using the latest Microsoft Test Platform runs tests from the CLI via `dotnet run <path-to-test-project>`.
 - when running tests, just run the tests added/modified, not the entire suite
