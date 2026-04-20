@@ -406,7 +406,7 @@
         "dependencies": {
           "Azure.Storage.Blobs": "[12.27.0, )",
           "Azure.Storage.Queues": "[12.25.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.5, )"
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.6, )"
         }
       },
       "Azure.Storage.Blobs": {
@@ -431,7 +431,7 @@
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[10.0.5, )",
+        "requested": "[10.0.6, )",
         "resolved": "10.0.6",
         "contentHash": "1YgBO3wAy0dlpQyVTKWBSPND/t0yZHsvd3shGpbeEwH8JSb2hnFI2pNFrOOUi/stsp+T/dqwqmRIGh47ibo9bw==",
         "dependencies": {
