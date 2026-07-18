@@ -54,6 +54,14 @@ jobs:
           name: NuGetPackage.${{ env.RELEASE_VERSION }}
           files: ./artifacts/*
 
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → short lived, temp API key)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+
       - name: Publish to GPR
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
@@ -64,5 +72,5 @@ jobs:
       - name: Publish to nuget.org
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
-            --api-key ${{ secrets.NUGET_TOKEN }} \
+            --api-key ${{ steps.nuget-login.outputs.api-key }} \
             --source https://api.nuget.org/v3/index.json
