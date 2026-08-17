@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs;
@@ -16,9 +17,9 @@ public sealed class HybridQueue(
     private const int MessageSize = 49152; // 48KB as bytes. The message size for plain text is 64KB and Base64 is 48KB. We can't
                                            // access the MessageEncoding value so we have to be conservative and stick with the lower value -> 48KB
 
-    private readonly QueueClient _queueClient = queueClient;
-    private readonly BlobContainerClient _blobContainerClient = blobContainerClient;
-    private readonly ILogger<HybridQueue> _logger = logger;
+    private readonly QueueClient _queueClient = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+    private readonly BlobContainerClient _blobContainerClient = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
+    private readonly ILogger<HybridQueue> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     private static readonly BlobHttpHeaders _httpHeaders = new()
     {
@@ -94,8 +95,9 @@ public sealed class HybridQueue(
             _logger.LogDebug("Item is a SimpleType: something other than a string.");
 
             // IsASimpleType ensures that item is a primitive type, or decimal, and none of them
-            // return null from their ToString method.
-            message = item.ToString().AssumeNotNull();
+            // return null from their ToString method. We use the invariant culture so the value
+            // round-trips correctly regardless of the current thread/OS culture (e.g. decimal separators).
+            message = Convert.ToString(item, CultureInfo.InvariantCulture).AssumeNotNull();
         }
         else
         {
@@ -235,7 +237,7 @@ public sealed class HybridQueue(
             }
         }
 
-        var queueResponse = await _queueClient
+        await _queueClient
             .DeleteMessageAsync(hybridMessage.MessageId, hybridMessage.PopReceipt, cancellationToken)
             .ConfigureAwait(false);
 
@@ -326,7 +328,7 @@ public sealed class HybridQueue(
             _logger.LogDebug("Retrieving item: which is a simple type and not a guid/not in Blob Storage.");
 
             // Do we have a GUID? Guids are used to represent the blobId.
-            var value = (T)Convert.ChangeType(message, typeof(T));
+            var value = (T)Convert.ChangeType(message, typeof(T), CultureInfo.InvariantCulture);
 
             var hybridMessage = new HybridMessage<T>(value, queueMessage.MessageId, queueMessage.PopReceipt, null);
             return hybridMessage;
