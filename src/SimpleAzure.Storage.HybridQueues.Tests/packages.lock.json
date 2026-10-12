@@ -45,9 +45,9 @@
       },
       "Testcontainers": {
         "type": "Direct",
-        "requested": "[4.14.0, )",
-        "resolved": "4.14.0",
-        "contentHash": "ojuBi91xcMsR6vnFuNsQDWU9tlZlrtmqy95VPNWVVnh24GiwFL/WMnVmb6bRv8LqovtnKPJN9cpmH1k02Z4ZoA==",
+        "requested": "[4.16.0, )",
+        "resolved": "4.16.0",
+        "contentHash": "JmMUZk6ZXQovbGQjaMB+YxOR0PbJTdYjOYjRcrm5LrA2dhLVMuCbhVGGunzCGIQfFMUB5Lno2LPOHMMuaGmuIg==",
         "dependencies": {
           "Docker.DotNet.Enhanced": "4.3.3",
           "Docker.DotNet.Enhanced.X509": "4.3.3",
@@ -58,11 +58,11 @@
       },
       "Testcontainers.Azurite": {
         "type": "Direct",
-        "requested": "[4.14.0, )",
-        "resolved": "4.14.0",
-        "contentHash": "yKYxhqP5rk/yXiEfG6EOxgzGCqu9lwKdAeVfTOwfiYTLcvIqPKjtWqbEuTC3qdtPbWZkntK/YVzvP0yZhgyz6Q==",
+        "requested": "[4.16.0, )",
+        "resolved": "4.16.0",
+        "contentHash": "KwR+TJ4knPJnM8Dd8fWaPCA7wp1x+SNnuTITIXY0YtqFH+aeO3zrZCil+juk+HgplFWlXO5b1Na1zdt1qe+EgA==",
         "dependencies": {
-          "Testcontainers": "4.14.0"
+          "Testcontainers": "4.16.0"
         }
       },
       "xunit.v3.mtp-v2": {
