@@ -24,6 +24,11 @@ jobs:
 
       - run: dotnet run --project src/SimpleAzure.Storage.HybridQueues.Tests/SimpleAzure.Storage.HybridQueues.Tests.csproj --configuration Debug --no-build -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory ./.codecoverage
 
+      - name: Code coverage summary
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: ./.github/scripts/coverage-summary.ps1 -Path ./.codecoverage >> $env:GITHUB_STEP_SUMMARY
+
       - name: Code coverage
         uses: codecov/codecov-action@v7
         with:
