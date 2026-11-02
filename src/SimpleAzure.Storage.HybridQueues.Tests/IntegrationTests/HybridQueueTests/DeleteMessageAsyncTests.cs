@@ -2,6 +2,10 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
 
 public class DeleteMessageAsyncTests : CustomAzuriteTestContainer
 {
+    public DeleteMessageAsyncTests(AzuriteFixture azuriteFixture) : base(azuriteFixture)
+    {
+    }
+
     private readonly CancellationToken _cancellationToken = TestContext.Current.CancellationToken;
 
     [Fact]

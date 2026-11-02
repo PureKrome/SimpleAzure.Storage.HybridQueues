@@ -2,6 +2,10 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
 
 public class AddMessageAsyncTests : CustomAzuriteTestContainer
 {
+    public AddMessageAsyncTests(AzuriteFixture azuriteFixture) : base(azuriteFixture)
+    {
+    }
+
     [Fact]
     public async Task AddMessageAsync_GivenSomeSimpleString_ShouldAddTheMessageToTheQueue()
     {

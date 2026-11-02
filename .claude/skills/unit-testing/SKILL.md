@@ -21,6 +21,7 @@ description: Write unit tests following team conventions for naming, structure, 
 - Mock external dependencies with Moq
 - Aim for high code coverage on business logic
 - Each method being tested should have its own class for organisation (the test assembly uses xUnit v3 4.0 `ParallelMode.All`, so every test runs in parallel regardless; tests must not share mutable state)
+- Integration tests share ONE Azurite container per test run (the `AzuriteFixture` xUnit assembly fixture, injected via the constructor of `CustomAzuriteTestContainer`). Each test gets its own uniquely named queue and blob container, so never use fixed resource names. Any new container-backed dependency (e.g. PostgreSQL, Redis) should follow the same assembly-fixture pattern.
 - Each method being tested should have at least one test for success and one for failure
 
 ## Test Structure

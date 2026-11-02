@@ -2,6 +2,10 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
 
 public class GetMessagesAsyncTests : CustomAzuriteTestContainer
 {
+    public GetMessagesAsyncTests(AzuriteFixture azuriteFixture) : base(azuriteFixture)
+    {
+    }
+
     private const string ValidNullJson = "null";
 
     [Theory]

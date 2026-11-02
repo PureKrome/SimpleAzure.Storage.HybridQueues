@@ -2,7 +2,7 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
 
 public class SetupContainerStorageAsyncTests : CustomAzuriteTestContainer
 {
-    public SetupContainerStorageAsyncTests() : base(false)
+    public SetupContainerStorageAsyncTests(AzuriteFixture azuriteFixture) : base(azuriteFixture, false)
     {
     }
 

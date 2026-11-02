@@ -5,6 +5,10 @@ namespace WorldDomination.SimpleAzure.Storage.HybridQueues.Tests.IntegrationTest
 {
     public class ParseMessageAsyncTests : CustomAzuriteTestContainer
     {
+        public ParseMessageAsyncTests(AzuriteFixture azuriteFixture) : base(azuriteFixture)
+        {
+        }
+
         public record FakePerson(string Name, int Age);
 
         [Theory]
